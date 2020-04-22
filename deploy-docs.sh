@@ -1,7 +1,7 @@
 #!/bin/sh
 git checkout master
 stack haddock --no-haddock-deps --fast
-doc_root="$(stack path --local-doc-root)"/recursion-schemes-ix
+doc_root="$(stack path --local-doc-root)"/recursion-schemes-ix-0.1.0.0
 git branch -D gh-pages
 git checkout --orphan gh-pages
 rm -rf ./*
