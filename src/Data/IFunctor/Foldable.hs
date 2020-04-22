@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE GADTs                 #-}
@@ -24,7 +25,6 @@ module Data.IFunctor.Foldable
 
 -- base
 import           Data.Functor.Classes
-import           Data.Functor.Compose  as X (Compose (Compose, getCompose))
 import           Data.Functor.Const    as X (Const (Const, getConst))
 import           Data.Functor.Identity as X (Identity (Identity, runIdentity))
 import           Data.Functor.Product  as X (Product (Pair))
@@ -33,6 +33,7 @@ import           Data.Kind             as X (Type)
 import           Data.Typeable         (Typeable)
 import           GHC.Generics          (Generic, Generic1)
 import           Text.Read             (Read (readPrec))
+import Data.Data (Data)
 -- singletons
 import           Data.Singletons       as X (SingI (sing), withSingI)
 
@@ -197,8 +198,8 @@ coelgot phi psi = h
 -- * Zygohistomorphic prepromorphism
 
 -- | Zygohistomorphic prepromorphism
-zygoHistoPrepro :: (Phantom b, IFunctor f)
-                => (f b ~~> b)
+zygoHistoPrepro :: (IFunctor f)
+                => (f (Const b) ~~> (Const b))
                 -> (forall c. f c ~~> f c)
                 -> (f (IEnvT b (ICofree f) a) ~~> a)
                 -> (IFix f ~~> a)
@@ -241,19 +242,15 @@ distFutu (IFree x) = imap (IFree . distFutu) x
 
 -- * Misc
 
--- | Class representing a type with a phantom type parameter.
--- Used to ensure a "dependent" type that isn't actually dependent.
-class Phantom f where
-    phantom :: f a -> f b
-
-distZygoT :: (IFunctor f, IComonad w, Phantom b)
-          => (f b ~~> b)
+distZygoT :: (IFunctor f, IComonad w)
+          => (f (Const b) ~~> (Const b))
           -> (forall c. f (w c) ~~> w (f c))
           -> (f (IEnvT b w a) ~~> IEnvT b w (f a))
-distZygoT g k fe = IEnvT (phantom $ g (imap getEnv fe)) (k (imap lower fe))
+distZygoT g k fe = IEnvT (getConst $ g (imap getEnv fe)) (k (imap lower fe))
     where
         lower (IEnvT _ x) = x
-        getEnv (IEnvT x _) = x
+        getEnv :: IEnvT e w a ix -> Const e ix
+        getEnv (IEnvT x _) = Const x
 
 -- * Generic combinators
 
@@ -315,6 +312,7 @@ gpostpro k e g = a . ipure
 
 -- | Identity IFunctor
 data Identity1 f ix = Identity1 { runIdentity1 :: f ix }
+    deriving (Typeable, Data, Generic, Generic1)
 
 instance Show1 f => Show1 (Identity1 f) where
     liftShowsPrec sp sl p (Identity1 x) =
@@ -417,6 +415,7 @@ instance IFunctor f => IMonad (IFree f) where
 
 -- -- | Church-encoded free IMonad
 -- newtype F f a ix = F { runF :: forall r. (a ~~> r) -> (f r ~~> r) -> r ix }
+    -- deriving (Typeable)
 
 -- instance IFunctor (F f) where
     -- imap f (F g) = F $ \kp -> g (kp . f)
@@ -435,13 +434,21 @@ instance IFunctor f => IMonad (IFree f) where
         -- go kp kf (IFree x) = kf (imap (go kp kf) x)
 
 -- | Environment IComonad
-data IEnvT e w a ix = IEnvT (forall ix. e ix) (w a ix)
+data IEnvT e w a ix = IEnvT e (w a ix)
+    deriving (Data, Typeable, Generic, Generic1)
 
 instance IFunctor w => IFunctor (IEnvT e w) where
     imap f (IEnvT e x) = IEnvT e (imap f x)
-instance IComonad w => IComonad (IEnvT e w) where
+instance (IComonad w) => IComonad (IEnvT e w) where
     iextract (IEnvT _ x) = iextract x
     iduplicate (IEnvT e x) = IEnvT e (iextend (IEnvT e) x)
+
+-- | Composition of IFunctors
+data ICompose f g a ix = ICompose { getCompose :: f (g a) ix }
+    deriving (Data, Typeable, Generic, Generic1)
+
+instance (IFunctor f, IFunctor g) => IFunctor (ICompose f g) where
+    imap f (ICompose x) = ICompose $ imap (imap f) x
 
 -- Other instances
 

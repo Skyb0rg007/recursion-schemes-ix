@@ -4,16 +4,18 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 09c239fbc4ef81657c3bce913f247db3cc0dd5cb10b96190c91c1135fd501ab8
+-- hash: eb619da89d874d778bcf6b3482111613ff0e8ca2bdde437f421f74bc3df2e056
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/recursion-schemes-ix#readme>
-homepage:       https://github.com/githubuser/recursion-schemes-ix#readme
-bug-reports:    https://github.com/githubuser/recursion-schemes-ix/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+synopsis:       Recursion schemes over indexed Functors
+description:    Please see the README on GitHub at <https://github.com/Skyb0rg007/recursion-schemes-ix#readme>
+category:       Data
+homepage:       https://github.com/Skyb0rg007/recursion-schemes-ix#readme
+bug-reports:    https://github.com/Skyb0rg007/recursion-schemes-ix/issues
+author:         Skye Soss
+maintainer:     skyler.soss@gmail.com
+copyright:      2020 Skye Soss
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,7 +25,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/recursion-schemes-ix
+  location: https://github.com/Skyb0rg007/recursion-schemes-ix
 
 library
   exposed-modules:

@@ -1,23 +1,23 @@
 name:                recursion-schemes-ix
 version:             0.1.0.0
-github:              "githubuser/recursion-schemes-ix"
+github:              "Skyb0rg007/recursion-schemes-ix"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Skye Soss"
+maintainer:          "skyler.soss@gmail.com"
+copyright:           "2020 Skye Soss"
 
 extra-source-files:
 - README.md
 - ChangeLog.md
 
 # Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis:            Recursion schemes over indexed Functors
+category:            Data
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/recursion-schemes-ix#readme>
+description:         Please see the README on GitHub at <https://github.com/Skyb0rg007/recursion-schemes-ix#readme>
 
 dependencies:
 - base >= 4.7 && < 5

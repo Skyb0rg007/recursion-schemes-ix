@@ -1,3 +1,6 @@
 # Changelog for recursion-schemes-ix
 
-## Unreleased changes
+## 0.0.1.0
+
+Initial release
+
