@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eb619da89d874d778bcf6b3482111613ff0e8ca2bdde437f421f74bc3df2e056
+-- hash: fd4c6bb173ea07a21aec429c4dd01cf3386f1e82ca9bdd38a053dc1e957ca8b9
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
@@ -29,7 +29,15 @@ source-repository head
 
 library
   exposed-modules:
+      Data.IComonad
+      Data.IFunction
+      Data.IFunctor
+      Data.IFunctor.Classes
       Data.IFunctor.Foldable
+      Data.IFunctor.ICofree
+      Data.IFunctor.IFree
+      Data.IFunctor.IIdentity
+      Data.IMonad
   other-modules:
       Paths_recursion_schemes_ix
   hs-source-dirs:

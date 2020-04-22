@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, PatternSynonyms, RankNTypes, DataKinds, KindSignatures, TypeFamilies, PolyKinds, InstanceSigs, ScopedTypeVariables, TypeApplications, MultiParamTypeClasses, LambdaCase, GADTs #-}
+{-# LANGUAGE QuantifiedConstraints, FlexibleInstances, PatternSynonyms, RankNTypes, DataKinds, KindSignatures, TypeFamilies, PolyKinds, InstanceSigs, ScopedTypeVariables, TypeApplications, MultiParamTypeClasses, LambdaCase, GADTs #-}
 
 module Main (main, spec) where
 
@@ -68,12 +68,31 @@ pattern FNeg a = IFix (FNegF a)
 pattern FAdd :: IFix AST Exp -> IFix AST Exp -> IFix AST Fac
 pattern FAdd a b = IFix (FAddF a b)
 
-instance Show (IFix AST Exp) where
-    show (EInt n) = show n
-    show (EFac x) = show x
-instance Show (IFix AST Fac) where
-    show (FNeg x) = "(- " ++ show x ++ ")"
-    show (FAdd a b) = "(+ " ++ show a ++ " " ++ show b ++ ")"
+instance IShow AST where
+    ishowsPrec p (EIntF n)   = showParen (p > 10) $ showString "EIntF " . showsPrec 11 n
+    ishowsPrec p (EFacF x)   = showParen (p > 10) $ showString "EFacF " . showsPrec 11 x
+    ishowsPrec p (FNegF x)   = showParen (p > 10) $ showString "FNegF " . showsPrec 11 x
+    ishowsPrec p (FAddF a b) = showParen (p > 10) $ showString "FAddF " . showsPrec 11 a . showString " " . showsPrec 11 b
+
+instance IEq AST where
+    ieq (EIntF n)   (EIntF m)   = n == m
+    ieq (EFacF x)   (EFacF y)   = x == y
+    ieq (FNegF x)   (FNegF y)   = x == y
+    ieq (FAddF a b) (FAddF x y) = a == x && b == y
+    ieq _ _ = False
+
+ex' :: IFix AST ix -> IFix AST ix -> Bool
+ex' = (==)
+
+ex :: IFix AST ix -> String
+ex = show
+
+-- instance Show (IFix AST Exp) where
+    -- show (EInt n) = show n
+    -- show (EFac x) = show x
+-- instance Show (IFix AST Fac) where
+    -- show (FNeg x) = "(- " ++ show x ++ ")"
+    -- show (FAdd a b) = "(+ " ++ show a ++ " " ++ show b ++ ")"
 
 instance IFunctor AST where
     imap :: forall ix a b. SingI ix

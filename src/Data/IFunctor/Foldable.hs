@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE GADTs                 #-}
@@ -12,6 +11,7 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -19,74 +19,85 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
 module Data.IFunctor.Foldable
-    ( module Data.IFunctor.Foldable
+    (
+    -- * Fixpoint for indexed types
+      IFix (..)
+    -- * Morphisms
+    -- * Constructive morphisms
+    , cata
+    , prepro
+    , para
+    , zygo
+    , histo
+    -- * Destructive morphisms
+    , ana
+    , postpro
+    , apo
+    , gapo
+    , futu
+    -- * Combined morphisms
+    , hylo
+    , dyna
+    , chrono
+    , meta
+    , elgot
+    , coelgot
+    -- * Distribution Laws
+    , DistLaw
+    -- * Constructive distribution laws
+    , distCata
+    , distPara
+    , distZygo
+    , distHisto
+    -- * Destructive distribution laws
+    , distAna
+    , distApo
+    , distGApo
+    , distFutu
+    -- * Generalized morphisms
+    , gfold
+    , gunfold
+    , ghylo
+    , gprepro
+    , gpostpro
+    -- * Re-exports
     , module X
     ) where
 
--- base
-import           Data.Functor.Classes
-import           Data.Functor.Const    as X (Const (Const, getConst))
-import           Data.Functor.Identity as X (Identity (Identity, runIdentity))
-import           Data.Functor.Product  as X (Product (Pair))
-import           Data.Functor.Sum      as X (Sum (InL, InR))
-import           Data.Kind             as X (Type)
-import           Data.Typeable         (Typeable)
-import           GHC.Generics          (Generic, Generic1)
-import           Text.Read             (Read (readPrec))
-import Data.Data (Data)
--- singletons
-import           Data.Singletons       as X (SingI (sing), withSingI)
-
-infixr 5 ::<
-infixr 4 ~~>
+import           Data.Functor.Product    as X (Product (..))
+import           Data.Functor.Sum        as X (Sum (..))
+import           Data.IComonad           as X (IComonad (..))
+import           Data.IFunction          as X (type (~~>))
+import           Data.IFunctor           as X (IFunctor (..))
+import           Data.IFunctor.Classes   as X
+import           Data.IFunctor.ICofree   as X (ICofree (..))
+import           Data.IFunctor.IFree     as X (IFree (..))
+import           Data.IFunctor.IIdentity as X (IIdentity (..))
+import           Data.IMonad             as X (IMonad (..))
+import           Data.Singletons         as X (SingI (sing), withSingI)
+import           Data.Typeable           (Typeable)
+import           GHC.Generics            (Generic, Generic1)
+import           Text.Read
 
 -- | Fixpoint type
 newtype IFix f ix = IFix { unIFix :: f (IFix f) ix }
     deriving (Typeable, Generic, Generic1)
 
-instance (forall a. Show1 a => Show1 (f a)) => Show1 (IFix f) where
-    liftShowsPrec sp sl p (IFix x) =
-         showsUnaryWith (liftShowsPrec sp sl) "IFix" p x
-instance (forall a. Read1 a => Read1 (f a)) => Read1 (IFix f) where
-    liftReadsPrec rp rl = readsData $
-        readsUnaryWith (liftReadsPrec rp rl) "IFix" IFix
-instance (forall a. Eq1 a => Eq1 (f a)) => Eq1 (IFix f) where
-    liftEq eq (IFix a) (IFix b) = liftEq eq a b
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a)) => Ord1 (IFix f) where
-    liftCompare comp (IFix a) (IFix b) = liftCompare comp a b
-instance (forall a. Show1 a => Show1 (f a), Show ix) => Show (IFix f ix) where
-    showsPrec = showsPrec1
-instance (forall a. Read1 a => Read1 (f a), Read ix) => Read (IFix f ix) where
-    readPrec = readPrec1
-instance (forall a. Eq1 a => Eq1 (f a), Eq ix) => Eq (IFix f ix) where
-    (==) = eq1
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a), Ord ix) => Ord (IFix f ix) where
-    compare = compare1
+instance (IShow f, SingI ix) => Show (IFix f ix) where
+    showsPrec p (IFix x) = showParen (p > 10) $
+        showString "IFix " .  ishowsPrec showsPrec p x
 
--- | Indexed function type
-type a ~~> b = forall ix. SingI ix => a ix -> b ix
+instance (IRead f, SingI ix) => Read (IFix f ix) where
+    readPrec = parens $ prec 10 $ do
+        Ident "IFix" <- lexP
+        x <- step $ ireadPrec readPrec
+        pure $ IFix x
 
--- | Functor in the category of dependent types
-class IFunctor f where
-    imap :: (a ~~> b) -> (f a ~~> f b)
+instance (IEq f, SingI ix) => Eq (IFix f ix) where
+    IFix x == IFix y = ieq (==) x y
 
--- | Monoids in the category of dependent endofunctors
-class IFunctor f => IMonad f where
-    ipure :: a ~~> f a
-    ijoin :: f (f a) ~~> f a
-    ijoin = ibind id
-    ibind :: (a ~~> f b) -> (f a ~~> f b)
-    ibind f = ijoin . imap f
-    {-# MINIMAL ipure, (ijoin | ibind) #-}
-
--- | Comonoid in the category of dependent endofunctors
-class IFunctor f => IComonad f where
-    iextract :: f a ~~> a
-    iduplicate :: f a ~~> f (f a)
-    iduplicate = iextend id
-    iextend :: (f a ~~> b) -> (f a ~~> f b)
-    iextend f = imap f . iduplicate
-    {-# MINIMAL iextract, (iduplicate | iextend) #-}
+instance (IOrd f, SingI ix) => Ord (IFix f ix) where
+    IFix x `compare` IFix y = icompare compare x y
 
 -- * Morphisms
 
@@ -94,7 +105,14 @@ class IFunctor f => IComonad f where
 cata :: IFunctor f
      => (f a ~~> a)
      -> (IFix f ~~> a)
-cata f = gfold distCata (f . imap runIdentity1)
+cata f = gfold distCata (f . imap runIIdentity)
+
+-- | Fokkinga's prepromorphism
+prepro :: IFunctor f
+       => (forall b. f b ~~> f b)
+       -> (f a ~~> a)
+       -> (IFix f ~~> a)
+prepro e f = gprepro distCata e (f . imap runIIdentity)
 
 -- | Paramorphism
 para :: IFunctor f
@@ -119,7 +137,14 @@ histo = gfold distHisto
 ana :: IFunctor f
     => (a ~~> f a)
     -> (a ~~> IFix f)
-ana g = gunfold distAna (imap Identity1 . g)
+ana g = gunfold distAna (imap IIdentity . g)
+
+-- | Fokkinga's postpromorphism
+postpro :: IFunctor f
+        => (forall b. f b ~~> f b)
+        -> (a ~~> f a)
+        -> (a ~~> IFix f)
+postpro e g = gpostpro distAna e (imap IIdentity . g)
 
 -- | Apomorphism
 apo :: IFunctor f
@@ -145,14 +170,14 @@ hylo :: IFunctor f
      => (f b ~~> b)
      -> (a ~~> f a)
      -> (a ~~> b)
-hylo f g = ghylo distCata distAna (f . imap runIdentity1) (imap Identity1 . g)
+hylo f g = ghylo distCata distAna (f . imap runIIdentity) (imap IIdentity . g)
 
 -- | Dynamorphism
 dyna :: IFunctor f
      => (f (ICofree f b) ~~> b)
      -> (a ~~> f a)
      -> (a ~~> b)
-dyna f g = ghylo distHisto distAna f (imap Identity1 . g)
+dyna f g = ghylo distHisto distAna f (imap IIdentity . g)
 
 -- | Chronomorphism
 chrono :: IFunctor f
@@ -198,12 +223,12 @@ coelgot phi psi = h
 -- * Zygohistomorphic prepromorphism
 
 -- | Zygohistomorphic prepromorphism
-zygoHistoPrepro :: (IFunctor f)
-                => (f (Const b) ~~> (Const b))
-                -> (forall c. f c ~~> f c)
-                -> (f (IEnvT b (ICofree f) a) ~~> a)
-                -> (IFix f ~~> a)
-zygoHistoPrepro f g t = gprepro (distZygoT f distHisto) g t
+-- zygoHistoPrepro :: (IFunctor f)
+                -- => (f (Const b) ~~> (Const b))
+                -- -> (forall c. f c ~~> f c)
+                -- -> (f (IEnvT b (ICofree f) a) ~~> a)
+                -- -> (IFix f ~~> a)
+-- zygoHistoPrepro f g t = gprepro (distZygoT f distHisto) g t
 
 -- * Distribution laws
 
@@ -212,8 +237,8 @@ type DistLaw f g = forall a. f (g a) ~~> g (f a)
 
 -- * Constructive distribution laws
 
-distCata :: IFunctor f => DistLaw f Identity1
-distCata = Identity1 . imap runIdentity1
+distCata :: IFunctor f => DistLaw f IIdentity
+distCata = IIdentity . imap runIIdentity
 
 distPara :: IFunctor f => DistLaw f (Product (IFix f))
 distPara = distZygo IFix
@@ -226,8 +251,8 @@ distHisto x = imap (\(a ::< _) -> a) x ::< imap (\(_ ::< x) -> distHisto x) x
 
 -- * Destructive distribution laws
 
-distAna :: IFunctor f => DistLaw Identity1 f
-distAna = imap Identity1 . runIdentity1
+distAna :: IFunctor f => DistLaw IIdentity f
+distAna = imap IIdentity . runIIdentity
 
 distApo :: IFunctor f => DistLaw (Sum (IFix f)) f
 distApo = distGApo unIFix
@@ -242,15 +267,15 @@ distFutu (IFree x) = imap (IFree . distFutu) x
 
 -- * Misc
 
-distZygoT :: (IFunctor f, IComonad w)
-          => (f (Const b) ~~> (Const b))
-          -> (forall c. f (w c) ~~> w (f c))
-          -> (f (IEnvT b w a) ~~> IEnvT b w (f a))
-distZygoT g k fe = IEnvT (getConst $ g (imap getEnv fe)) (k (imap lower fe))
-    where
-        lower (IEnvT _ x) = x
-        getEnv :: IEnvT e w a ix -> Const e ix
-        getEnv (IEnvT x _) = Const x
+-- distZygoT :: (IFunctor f, IComonad w)
+          -- => (f (Const b) ~~> (Const b))
+          -- -> (forall c. f (w c) ~~> w (f c))
+          -- -> (f (IEnvT b w a) ~~> IEnvT b w (f a))
+-- distZygoT g k fe = IEnvT (getConst $ g (imap getEnv fe)) (k (imap lower fe))
+    -- where
+        -- lower (IEnvT _ x) = x
+        -- getEnv :: IEnvT e w a ix -> Const e ix
+        -- getEnv (IEnvT x _) = Const x
 
 -- * Generic combinators
 
@@ -308,164 +333,5 @@ gpostpro k e g = a . ipure
         a :: m a ~~> IFix f
         a = IFix . imap (cata (IFix . e) . a . ijoin) . k . imap g
 
--- * Data Structures
 
--- | Identity IFunctor
-data Identity1 f ix = Identity1 { runIdentity1 :: f ix }
-    deriving (Typeable, Data, Generic, Generic1)
 
-instance Show1 f => Show1 (Identity1 f) where
-    liftShowsPrec sp sl p (Identity1 x) =
-        showsUnaryWith (liftShowsPrec sp sl) "Identity1" p x
-instance Read1 f => Read1 (Identity1 f) where
-    liftReadsPrec rp rl = readsData $
-        readsUnaryWith (liftReadsPrec rp rl) "Identity1" Identity1
-instance Eq1 f => Eq1 (Identity1 f) where
-    liftEq eq (Identity1 x) (Identity1 y) = liftEq eq x y
-instance Ord1 f => Ord1 (Identity1 f) where
-    liftCompare comp (Identity1 x) (Identity1 y) = liftCompare comp x y
-instance (Show1 f, Show ix) => Show (Identity1 f ix) where
-    showsPrec = showsPrec1
-instance (Read1 f, Read ix) => Read (Identity1 f ix) where
-    readsPrec = readsPrec1
-instance (Eq1 f, Eq ix) => Eq (Identity1 f ix) where
-    (==) = eq1
-instance (Ord1 f, Ord ix) => Ord (Identity1 f ix) where
-    compare = compare1
-instance IFunctor Identity1 where
-    imap f (Identity1 x) = Identity1 (f x)
-instance IComonad Identity1 where
-    iextract (Identity1 x) = x
-    iduplicate = Identity1
-instance IMonad Identity1 where
-    ipure = Identity1
-    ijoin (Identity1 x) = x
-
--- | Cofree IComonad
-data ICofree f a ix = a ix ::< f (ICofree f a) ix
-    deriving (Typeable, Generic, Generic1)
-
-instance (forall a. Show1 a => Show1 (f a), Show1 a) => Show1 (ICofree f a) where
-    liftShowsPrec sp sl p (a ::< x) =
-        showsBinaryWith (liftShowsPrec sp sl) (liftShowsPrec sp sl) "::<" p a x
-instance (forall a. Read1 a => Read1 (f a), Read1 a) => Read1 (ICofree f a) where
-    liftReadsPrec rp rl = readsData $
-        readsBinaryWith (liftReadsPrec rp rl) (liftReadsPrec rp rl) "::<" (::<)
-instance (forall a. Eq1 a => Eq1 (f a), Eq1 a) => Eq1 (ICofree f a) where
-    liftEq eq (a ::< x) (b ::< y) = liftEq eq a b && liftEq eq x y
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a), Ord1 a) => Ord1 (ICofree f a) where
-    liftCompare comp (a ::< x) (b ::< y) = liftCompare comp a b <> liftCompare comp x y
-instance (forall a. Show1 a => Show1 (f a), Show1 a, Show ix) => Show (ICofree f a ix) where
-    showsPrec = showsPrec1
-instance (forall a. Read1 a => Read1 (f a), Read1 a, Read ix) => Read (ICofree f a ix) where
-    readsPrec = readsPrec1
-instance (forall a. Eq1 a => Eq1 (f a), Eq1 a, Eq ix) => Eq (ICofree f a ix) where
-    (==) = eq1
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a), Ord1 a, Ord ix) => Ord (ICofree f a ix) where
-    compare = compare1
-instance IFunctor f => IFunctor (ICofree f) where
-    imap f (a ::< x) = f a ::< imap (imap f) x
-instance IFunctor f => IComonad (ICofree f) where
-    iextract (a ::< _) = a
-    iduplicate (a ::< x) = (a ::< x) ::< imap iduplicate x
-    iextend f (a ::< x) = f (a ::< x) ::< imap (iextend f) x
-
--- | Free IMonad
-data IFree f a ix
-    = IPure (a ix)
-    | IFree (f (IFree f a) ix)
-    deriving (Typeable, Generic, Generic1)
-
-instance (forall a. Show1 a => Show1 (f a), Show1 a) => Show1 (IFree f a) where
-    liftShowsPrec sp sl p (IPure x) =
-        showsUnaryWith (liftShowsPrec sp sl) "IPure" p x
-    liftShowsPrec sp sl p (IFree x) =
-        showsUnaryWith (liftShowsPrec sp sl) "IFree" p x
-instance (forall a. Read1 a => Read1 (f a), Read1 a) => Read1 (IFree f a) where
-    liftReadsPrec rp rl = readsData $
-        readsUnaryWith (liftReadsPrec rp rl) "IFree" IFree
-        <>
-        readsUnaryWith (liftReadsPrec rp rl) "IPure" IPure
-instance (forall a. Eq1 a => Eq1 (f a), Eq1 a) => Eq1 (IFree f a) where
-    liftEq eq (IPure x) (IPure y) = liftEq eq x y
-    liftEq eq (IFree x) (IFree y) = liftEq eq x y
-    liftEq _ _ _ = False
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a), Ord1 a) => Ord1 (IFree f a) where
-    liftCompare comp (IPure x) (IPure y) = liftCompare comp x y
-    liftCompare comp (IFree x) (IFree y) = liftCompare comp x y
-    liftCompare _ (IPure _) (IFree _) = LT
-    liftCompare _ (IFree _) (IPure _) = GT
-instance (forall a. Show1 a => Show1 (f a), Show1 a, Show ix) => Show (IFree f a ix) where
-    showsPrec = showsPrec1
-instance (forall a. Read1 a => Read1 (f a), Read1 a, Read ix) => Read (IFree f a ix) where
-    readsPrec = readsPrec1
-instance (forall a. Eq1 a => Eq1 (f a), Eq1 a, Eq ix) => Eq (IFree f a ix) where
-    (==) = eq1
-instance (forall a. Eq1 a => Eq1 (f a), forall a. Ord1 a => Ord1 (f a), Ord1 a, Ord ix) => Ord (IFree f a ix) where
-    compare = compare1
-instance IFunctor f => IFunctor (IFree f) where
-    imap f (IPure x) = IPure (f x)
-    imap f (IFree x) = IFree (imap (imap f) x)
-instance IFunctor f => IMonad (IFree f) where
-    ipure = IPure
-    ijoin (IPure x) = x
-    ijoin (IFree x) = IFree $ imap ijoin x
-    ibind f (IPure x) = f x
-    ibind f (IFree x) = IFree $ imap (ibind f) x
-
--- -- | Church-encoded free IMonad
--- newtype F f a ix = F { runF :: forall r. (a ~~> r) -> (f r ~~> r) -> r ix }
-    -- deriving (Typeable)
-
--- instance IFunctor (F f) where
-    -- imap f (F g) = F $ \kp -> g (kp . f)
--- instance IMonad (F f) where
-    -- ipure x = F $ \kp _ -> kp x
-    -- ibind f (F m) = F $ \kp kf -> m (\a -> runF (f a) kp kf) kf
-
--- fromF :: F f a ~~> IFree f a
--- fromF (F m) = m IPure IFree
-
--- toF :: forall f a. IFunctor f => IFree f a ~~> F f a
--- toF xs = F $ \kp kf -> go kp kf xs
-    -- where
-        -- go :: forall r. (a ~~> r) -> (f r ~~> r) -> (IFree f a ~~> r)
-        -- go kp _ (IPure x) = kp x
-        -- go kp kf (IFree x) = kf (imap (go kp kf) x)
-
--- | Environment IComonad
-data IEnvT e w a ix = IEnvT e (w a ix)
-    deriving (Data, Typeable, Generic, Generic1)
-
-instance IFunctor w => IFunctor (IEnvT e w) where
-    imap f (IEnvT e x) = IEnvT e (imap f x)
-instance (IComonad w) => IComonad (IEnvT e w) where
-    iextract (IEnvT _ x) = iextract x
-    iduplicate (IEnvT e x) = IEnvT e (iextend (IEnvT e) x)
-
--- | Composition of IFunctors
-data ICompose f g a ix = ICompose { getCompose :: f (g a) ix }
-    deriving (Data, Typeable, Generic, Generic1)
-
-instance (IFunctor f, IFunctor g) => IFunctor (ICompose f g) where
-    imap f (ICompose x) = ICompose $ imap (imap f) x
-
--- Other instances
-
-instance IFunctor (Sum a) where
-    imap f = \case
-        InL x -> InL x
-        InR x -> InR (f x)
-instance IMonad (Sum a) where
-    ipure = InR
-    ijoin (InL x) = InL x
-    ijoin (InR x) = x
-    ibind _ (InL x) = InL x
-    ibind f (InR x) = f x
-
-instance IFunctor (Product a) where
-    imap f (Pair a b) = Pair a (f b)
-instance IComonad (Product a) where
-    iextract (Pair _ b) = b
-    iduplicate (Pair a b) = Pair a (Pair a b)
-    iextend f (Pair a b) = Pair a $ f (Pair a b)
