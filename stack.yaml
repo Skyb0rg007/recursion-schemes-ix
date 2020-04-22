@@ -1,0 +1,7 @@
+resolver: lts-15.9
+
+packages:
+- .
+
+# extra-deps:
+# - quantification-0.5.1@sha256:142bd1e46dcc770ad3e845acb8e82b794a27b86b2acfd62432b70f77c0a973f4,1047
