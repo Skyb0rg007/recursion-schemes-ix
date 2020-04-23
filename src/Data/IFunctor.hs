@@ -1,3 +1,4 @@
+{-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE RankNTypes    #-}
 {-# LANGUAGE TypeOperators #-}
 

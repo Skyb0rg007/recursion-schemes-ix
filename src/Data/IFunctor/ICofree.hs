@@ -1,8 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
@@ -12,6 +14,7 @@ module Data.IFunctor.ICofree
 
 import           Data.IComonad         (IComonad (..))
 import           Data.IFunctor         (IFunctor (..))
+import           Data.ITraversable     (ITraversable (..))
 import           Data.IFunctor.Classes
 import           Data.Singletons       (SingI)
 import           Data.Typeable         (Typeable)
@@ -26,6 +29,9 @@ data ICofree f a ix = a ix ::< f (ICofree f a) ix
 
 instance IFunctor f => IFunctor (ICofree f) where
     imap f (a ::< x) = f a ::< imap (imap f) x
+
+instance ITraversable f => ITraversable (ICofree f) where
+    itraverse f (a ::< x) = (::<) <$> f a <*> itraverse (itraverse f) x
 
 instance IFunctor f => IComonad (ICofree f) where
     iextract (a ::< _) = a
@@ -49,14 +55,14 @@ instance IEq f => IEq (ICofree f) where
 instance IOrd f => IOrd (ICofree f) where
     icompare comp (a ::< x) (a' ::< x') = comp a a' <> icompare (icompare comp) x x'
 
-instance (IShow f, SingI ix, forall ix. SingI ix => Show (a ix)) => Show (ICofree f a ix) where
+instance (IShow f, IShow2 a, SingI ix) => Show (ICofree f a ix) where
     showsPrec = ishowsPrec1
 
-instance (IRead f, SingI ix, forall ix. SingI ix => Read (a ix)) => Read (ICofree f a ix) where
+instance (IRead f, IRead2 a, SingI ix) => Read (ICofree f a ix) where
     readPrec = ireadPrec1
 
-instance (IEq f, SingI ix, forall ix. SingI ix => Eq (a ix)) => Eq (ICofree f a ix) where
+instance (IEq f, IEq2 a, SingI ix) => Eq (ICofree f a ix) where
     (==) = ieq1
 
-instance (IOrd f, SingI ix, forall ix. SingI ix => Ord (a ix)) => Ord (ICofree f a ix) where
+instance (IOrd f, IOrd2 a, SingI ix) => Ord (ICofree f a ix) where
     compare = icompare1

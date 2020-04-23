@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -14,6 +15,7 @@ import           Data.Data             (Data)
 import           Data.Function         (on)
 import           Data.IComonad         (IComonad (..))
 import           Data.IFunctor         (IFunctor (..))
+import           Data.ITraversable     (ITraversable (..))
 import           Data.IFunctor.Classes
 import           Data.IMonad           (IMonad (..))
 import           Data.Singletons       (SingI)
@@ -35,6 +37,9 @@ instance IComonad IIdentity where
     iextract = runIIdentity
     iduplicate = IIdentity
 
+instance ITraversable IIdentity where
+    itraverse f = fmap IIdentity . f . runIIdentity
+
 instance IShow IIdentity where
     ishowsPrec sp p (IIdentity x) = showParen (p > 10) $
         showString "IIdentity " . sp p x
@@ -51,15 +56,15 @@ instance IEq IIdentity where
 instance IOrd IIdentity where
     icompare comp = comp `on` runIIdentity
 
-instance (forall ix. SingI ix => Show (f ix), SingI ix) => Show (IIdentity f ix) where
+instance (IShow2 f, SingI ix) => Show (IIdentity f ix) where
     showsPrec = ishowsPrec1
 
-instance (forall ix. SingI ix => Read (f ix), SingI ix) => Read (IIdentity f ix) where
+instance (IRead2 f, SingI ix) => Read (IIdentity f ix) where
     readPrec = ireadPrec1
 
-instance (forall ix. SingI ix => Eq (f ix), SingI ix) => Eq (IIdentity f ix) where
+instance (IEq2 f, SingI ix) => Eq (IIdentity f ix) where
     (==) = ieq1
 
-instance (forall ix. SingI ix => Ord (f ix), SingI ix) => Ord (IIdentity f ix) where
+instance (IOrd2 f, SingI ix) => Ord (IIdentity f ix) where
     compare = icompare1
 

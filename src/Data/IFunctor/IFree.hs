@@ -1,8 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
@@ -13,6 +15,7 @@ module Data.IFunctor.IFree
 import           Data.IFunctor         (IFunctor (..))
 import           Data.IFunctor.Classes
 import           Data.IMonad           (IMonad (..))
+import           Data.ITraversable     (ITraversable (..))
 import           Data.Singletons       (SingI)
 import           Data.Typeable         (Typeable)
 import           GHC.Generics          (Generic, Generic1)
@@ -27,6 +30,10 @@ data IFree f a ix
 instance IFunctor f => IFunctor (IFree f) where
     imap f (IPure x) = IPure (f x)
     imap f (IFree x) = IFree (imap (imap f) x)
+
+instance ITraversable f => ITraversable (IFree f) where
+    itraverse f (IPure x) = IPure <$> f x
+    itraverse f (IFree x) = IFree <$> itraverse (itraverse f) x
 
 instance IFunctor f => IMonad (IFree f) where
     ipure = IPure
@@ -66,16 +73,16 @@ instance IOrd f => IOrd (IFree f) where
     icompare _ (IPure _) (IFree _) = LT
     icompare _ (IFree _) (IPure _) = GT
 
-instance (IShow f, SingI ix, forall ix. SingI ix => Show (a ix)) => Show (IFree f a ix) where
+instance (IShow f, IShow2 a, SingI ix) => Show (IFree f a ix) where
     showsPrec = ishowsPrec1
 
-instance (IRead f, SingI ix, forall ix. SingI ix => Read (a ix)) => Read (IFree f a ix) where
+instance (IRead f, IRead2 a, SingI ix) => Read (IFree f a ix) where
     readPrec = ireadPrec1
 
-instance (IEq f, SingI ix, forall ix. SingI ix => Eq (a ix)) => Eq (IFree f a ix) where
+instance (IEq f, IEq2 a, SingI ix) => Eq (IFree f a ix) where
     (==) = ieq1
 
-instance (IOrd f, SingI ix, forall ix. SingI ix => Ord (a ix)) => Ord (IFree f a ix) where
+instance (IOrd f, IOrd2 a, SingI ix) => Ord (IFree f a ix) where
     compare = icompare1
 
 

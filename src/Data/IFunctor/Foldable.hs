@@ -15,6 +15,7 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
@@ -60,10 +61,21 @@ module Data.IFunctor.Foldable
     , ghylo
     , gprepro
     , gpostpro
+    -- * Monadic morphisms
+    , cataM
+    , paraM
+    , anaM
+    , hyloM
+    -- , apoM
+    , gfoldM
+    , gunfoldM
+    , ghyloM
     -- * Re-exports
     , module X
     ) where
 
+import           Control.Monad ((<=<))
+import           Data.Functor.Const as X (Const (..))
 import           Data.Functor.Product    as X (Product (..))
 import           Data.Functor.Sum        as X (Sum (..))
 import           Data.IComonad           as X (IComonad (..))
@@ -73,6 +85,7 @@ import           Data.IFunctor.Classes   as X
 import           Data.IFunctor.ICofree   as X (ICofree (..))
 import           Data.IFunctor.IFree     as X (IFree (..))
 import           Data.IFunctor.IIdentity as X (IIdentity (..))
+import           Data.ITraversable       as X (ITraversable (..), imapDefault)
 import           Data.IMonad             as X (IMonad (..))
 import           Data.Singletons         as X (SingI (sing), withSingI)
 import           Data.Typeable           (Typeable)
@@ -85,7 +98,7 @@ newtype IFix f ix = IFix { unIFix :: f (IFix f) ix }
 
 instance (IShow f, SingI ix) => Show (IFix f ix) where
     showsPrec p (IFix x) = showParen (p > 10) $
-        showString "IFix " .  ishowsPrec showsPrec p x
+        showString "IFix " .  ishowsPrec showsPrec 11 x
 
 instance (IRead f, SingI ix) => Read (IFix f ix) where
     readPrec = parens $ prec 10 $ do
@@ -107,6 +120,12 @@ cata :: IFunctor f
      -> (IFix f ~~> a)
 cata f = gfold distCata (f . imap runIIdentity)
 
+-- | Monadic catamorphism
+cataM :: (ITraversable f, Monad m)
+      => (forall ix. SingI ix => f a ix -> m (a ix))
+      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+cataM f = gfoldM distCata (f . imap runIIdentity)
+
 -- | Fokkinga's prepromorphism
 prepro :: IFunctor f
        => (forall b. f b ~~> f b)
@@ -119,6 +138,12 @@ para :: IFunctor f
      => (f (Product (IFix f) a) ~~> a)
      -> (IFix f ~~> a)
 para = gfold distPara
+
+-- | Monadic Paramorphism
+paraM :: (ITraversable f, Monad m)
+      => (forall ix. SingI ix => f (Product (IFix f) a) ix -> m (a ix))
+      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+paraM = gfoldM distPara
 
 -- | Zygomorphism
 zygo :: IFunctor f
@@ -138,6 +163,12 @@ ana :: IFunctor f
     => (a ~~> f a)
     -> (a ~~> IFix f)
 ana g = gunfold distAna (imap IIdentity . g)
+
+-- | Monadic anamorphism
+anaM :: (ITraversable f, Monad m)
+     => (forall ix. SingI ix => a ix -> m (f a ix))
+     -> (forall ix. SingI ix => a ix -> m (IFix f ix))
+anaM g = gunfoldM distAna (fmap (imap IIdentity) . g)
 
 -- | Fokkinga's postpromorphism
 postpro :: IFunctor f
@@ -171,6 +202,13 @@ hylo :: IFunctor f
      -> (a ~~> f a)
      -> (a ~~> b)
 hylo f g = ghylo distCata distAna (f . imap runIIdentity) (imap IIdentity . g)
+
+-- | Monadic hylomorphism
+hyloM :: (ITraversable f, Monad m)
+     => (forall ix. SingI ix => f b ix -> m (b ix))
+     -> (forall ix. SingI ix => a ix -> m (f a ix))
+     -> (forall ix. SingI ix => a ix -> m (b ix))
+hyloM f g = ghyloM distCata distAna (f . imap runIIdentity) (fmap (imap IIdentity) . g)
 
 -- | Dynamorphism
 dyna :: IFunctor f
@@ -289,6 +327,15 @@ gfold k g = g . iextract . c
         c :: IFix f ~~> w (f (w a))
         c = k . imap (iduplicate . imap g . c) . unIFix
 
+gfoldM :: forall f w m a. (ITraversable f, ITraversable w, IComonad w, Monad m)
+       => DistLaw f w
+       -> (forall ix. SingI ix => f (w a) ix -> m (a ix))
+       -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+gfoldM k g = g . iextract <=< c
+    where
+        c :: forall ix. SingI ix => IFix f ix -> m (w (f (w a)) ix)
+        c = fmap k . itraverse (fmap iduplicate . itraverse g <=< c) . unIFix
+
 -- | Generic unfold
 gunfold :: forall f m a. (IFunctor f, IMonad m)
         => DistLaw m f
@@ -298,6 +345,15 @@ gunfold k f = a . ipure . f
     where
         a :: m (f (m a)) ~~> IFix f
         a = IFix . imap (a . imap f . ijoin) . k
+
+gunfoldM :: forall f m a x. (ITraversable f, ITraversable m, IMonad m, Monad x)
+         => DistLaw m f
+         -> (forall ix. SingI ix => a ix -> x (f (m a) ix))
+         -> (forall ix. SingI ix => a ix -> x (IFix f ix))
+gunfoldM k f = a . ipure <=< f
+    where
+        a :: SingI ix => m (f (m a)) ix -> x (IFix f ix)
+        a = fmap IFix . itraverse (a <=< itraverse f . ijoin) . k
 
 -- | Generic hylomorphism
 ghylo :: forall f w m a b. (IFunctor f, IComonad w, IMonad m)
@@ -310,6 +366,17 @@ ghylo w m f g = iextract . h . ipure
     where
         h :: m a ~~> w b
         h = imap f . w . imap (iduplicate . h . ijoin) . m . imap g
+
+ghyloM :: forall f w m a b x. (ITraversable f, ITraversable w, ITraversable m, IComonad w, IMonad m, Monad x)
+       => DistLaw f w
+       -> DistLaw m f
+       -> (forall ix. SingI ix => f (w b) ix -> x (b ix))
+       -> (forall ix. SingI ix => a ix -> x (f (m a) ix))
+       -> (forall ix. SingI ix => a ix -> x (b ix))
+ghyloM w m f g = fmap iextract . h . ipure
+    where
+        h :: SingI ix => m a ix -> x (w b ix)
+        h = itraverse f <=< fmap w . itraverse (fmap iduplicate . h . ijoin) . m <=< itraverse g
 
 -- | Generalized prepromorphism
 gprepro :: forall f w a. (IFunctor f, IComonad w)

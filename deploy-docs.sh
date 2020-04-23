@@ -1,7 +1,10 @@
 #!/bin/sh
 git checkout master
 stack haddock --no-haddock-deps --fast
-doc_root="$(stack path --local-doc-root)"/recursion-schemes-ix-0.1.0.0
+pkg="$(grep "name:" package.yaml | awk '{ print $2 }')"
+vsn="$(grep "version:" package.yaml | awk '{ print $2 }')"
+doc_root="$(stack path --local-doc-root)/$pkg-$vsn"
+if [ ! -d "$doc_root" ]; then echo "Could not find documentation for $pkg" >&2; exit 1; fi
 git branch -D gh-pages
 git checkout --orphan gh-pages
 rm -rf ./*

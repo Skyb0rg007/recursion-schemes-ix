@@ -37,5 +37,8 @@ tests:
     dependencies:
     - recursion-schemes-ix
     - hspec
+    - mtl
     - QuickCheck
     - containers
+    build-tool:
+    - hspec-discover: hspec-discover

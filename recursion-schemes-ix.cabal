@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fd4c6bb173ea07a21aec429c4dd01cf3386f1e82ca9bdd38a053dc1e957ca8b9
+-- hash: 3c0a7d173ff15e5b3451e7aabe24c34d1a2587d0ec79eceafb511f64a10f46dc
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
@@ -38,6 +38,7 @@ library
       Data.IFunctor.IFree
       Data.IFunctor.IIdentity
       Data.IMonad
+      Data.ITraversable
   other-modules:
       Paths_recursion_schemes_ix
   hs-source-dirs:
@@ -51,6 +52,9 @@ test-suite recursion-schemes-ix-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ASTSpec
+      FibSpec
+      GRINSpec
       Paths_recursion_schemes_ix
   hs-source-dirs:
       test
@@ -60,6 +64,7 @@ test-suite recursion-schemes-ix-test
     , base >=4.7 && <5
     , containers
     , hspec
+    , mtl
     , recursion-schemes-ix
     , singletons
   default-language: Haskell2010
