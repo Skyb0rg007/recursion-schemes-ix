@@ -14,11 +14,11 @@ module Data.IFunctor.ICofree
 
 import           Data.IComonad         (IComonad (..))
 import           Data.IFunctor         (IFunctor (..))
-import           Data.ITraversable     (ITraversable (..))
 import           Data.IFunctor.Classes
-import           Data.Singletons       (SingI)
+import           Data.ITraversable     (ITraversable (..))
 import           Data.Typeable         (Typeable)
 import           GHC.Generics          (Generic, Generic1)
+import           Singlethongs          (SingI)
 import           Text.Read
 
 infixr 5 ::<

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3c0a7d173ff15e5b3451e7aabe24c34d1a2587d0ec79eceafb511f64a10f46dc
+-- hash: 896504780cf1b7cf35239d0be90572e037db336b881ca418eccaa3d5c9d37f5e
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
@@ -18,6 +18,7 @@ maintainer:     skyler.soss@gmail.com
 copyright:      2020 Skye Soss
 license:        BSD3
 license-file:   LICENSE
+tested-with:    GHC == 8.6.5 , GHC == 8.8.3 , GHC == 8.10.1 , GHCJS == 8.6.0.1
 build-type:     Simple
 extra-source-files:
     README.md
@@ -45,14 +46,13 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , singletons
+    , singlethongs ==0.1
   default-language: Haskell2010
 
 test-suite recursion-schemes-ix-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ASTSpec
       FibSpec
       GRINSpec
       Paths_recursion_schemes_ix
@@ -66,5 +66,5 @@ test-suite recursion-schemes-ix-test
     , hspec
     , mtl
     , recursion-schemes-ix
-    , singletons
+    , singlethongs ==0.1
   default-language: Haskell2010

@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE InstanceSigs        #-}
+{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -12,20 +12,19 @@
 
 module GRINSpec (main, spec) where
 
-import Test.Hspec
-import Test.QuickCheck
-import Data.Singletons.TH (singletons)
-import Data.IFunctor.Foldable
-import Text.Show (showListWith)
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Control.Monad.State
+import           Control.Monad.State
+import           Data.IFunctor.Foldable
+import           Data.Map               (Map)
+import qualified Data.Map               as Map
+import           Data.Set               (Set)
+import qualified Data.Set               as Set
+import           Singlethongs
+import           Test.Hspec
+import           Test.QuickCheck
+import           Text.Show              (showListWith)
 
-$(singletons [d|
-    data ASTIdx = Exp | SimpleExp | Alt | Program | Def
-    |])
+data ASTIdx = Exp | SimpleExp | Alt | Program | Def
+singlethongs ''ASTIdx
 
 main :: IO ()
 main = hspec spec
@@ -44,34 +43,29 @@ spec = do
 type Name = String
 
 data External = External
-    { externalName :: Name
+    { externalName      :: Name
     , externalEffectful :: Bool
     -- other fields elided
     }
     deriving (Show, Read, Eq, Ord)
 
-data Lit
-    = LInt Int
+data Lit = LInt Int
     | LBool Bool
     deriving (Show, Read, Eq, Ord)
 
-data Val
-    = VTag Name [SimpleVal]
+data Val = VTag Name [SimpleVal]
     | VSimple SimpleVal
     deriving (Show, Read, Eq, Ord)
 
-data SimpleVal
-    = SVLit Lit
+data SimpleVal = SVLit Lit
     | SVVar Name
     deriving (Show, Read, Eq, Ord)
 
-data LPat
-    = LPTag Name [Name]
+data LPat = LPTag Name [Name]
     | LPUnit
     deriving (Show, Read, Eq, Ord)
 
-data CPat
-    = CPTag Name [Name]
+data CPat = CPTag Name [Name]
     | CPLit Lit
     | CPDefault
     deriving (Show, Read, Eq, Ord)
@@ -128,39 +122,46 @@ data Alt = Alt CPat 'Exp
 
 data AST (f :: ASTIdx -> *) (ix :: ASTIdx) where
     -- Program
-    ProgramF :: [External] -> [f Def] -> AST f Program
+    ProgramF :: [External] -> [f 'Def] -> AST f 'Program
     -- Def
-    DefF :: Name -> [Name] -> f 'Exp -> AST f Def
-    -- 'Exp
-    EBindF :: f SimpleExp -> LPat -> f 'Exp -> AST f 'Exp
-    ECaseF :: Val -> [f Alt] -> AST f 'Exp
-    ESimpleF :: f SimpleExp -> AST f 'Exp
+    DefF :: Name -> [Name] -> f 'Exp -> AST f 'Def
+    -- Exp
+    EBindF :: f 'SimpleExp -> LPat -> f 'Exp -> AST f 'Exp
+    ECaseF :: Val -> [f 'Alt] -> AST f 'Exp
+    ESimpleF :: f 'SimpleExp -> AST f 'Exp
     -- SimpleExp
-    SAppF :: Name -> [SimpleVal] -> AST f SimpleExp
-    SReturnF :: Val -> AST f SimpleExp
-    SStoreF :: Val -> AST f SimpleExp
-    SFetchF :: Name -> AST f SimpleExp
-    SUpdateF :: Name -> Val -> AST f SimpleExp
+    SAppF :: Name -> [SimpleVal] -> AST f 'SimpleExp
+    SReturnF :: Val -> AST f 'SimpleExp
+    SStoreF :: Val -> AST f 'SimpleExp
+    SFetchF :: Name -> AST f 'SimpleExp
+    SUpdateF :: Name -> Val -> AST f 'SimpleExp
     -- Alt
-    AltF :: CPat -> f 'Exp -> AST f Alt
+    AltF :: CPat -> f 'Exp -> AST f 'Alt
 
-type Exp = IFix AST 'Exp
+type Program   = IFix AST 'Program
+type Def       = IFix AST 'Def
+type Exp       = IFix AST 'Exp
+type SimpleExp = IFix AST 'SimpleExp
+type Alt       = IFix AST 'Alt
 
 instance IFunctor AST where
     imap = imapDefault
 
 instance ITraversable AST where
-    itraverse :: forall ix a b m. (Applicative m, SingI ix) => (forall ix. SingI ix => a ix -> m (b ix)) -> AST a ix -> m (AST b ix)
+    itraverse :: forall ix a b m. (Applicative m, SingI ix)
+              => (forall ix. SingI ix => a ix -> m (b ix))
+              -> AST a ix
+              -> m (AST b ix)
     itraverse f =
-      case sing @ix of
+      case sing :: Sing ix of
         SProgram -> \case
-          ProgramF externs defs -> ProgramF externs <$> (traverse (f @Def) defs)
+          ProgramF externs defs -> ProgramF externs <$> traverse (f @'Def) defs
         SDef -> \case
           DefF fn args body -> DefF fn args <$> f @'Exp body
         SExp -> \case
-          EBindF e1 pat e2 -> EBindF <$> f @SimpleExp e1 <*> pure pat <*> f @'Exp e2
-          ECaseF x alts -> ECaseF x <$> (traverse (f @Alt) alts)
-          ESimpleF e -> ESimpleF <$> f @SimpleExp e
+          EBindF e1 pat e2 -> EBindF <$> f @'SimpleExp e1 <*> pure pat <*> f @'Exp e2
+          ECaseF x alts -> ECaseF x <$> (traverse (f @'Alt) alts)
+          ESimpleF e -> ESimpleF <$> f @'SimpleExp e
         SSimpleExp -> \case
           SAppF fn args -> pure $ SAppF fn args
           SReturnF x -> pure $ SReturnF x
@@ -173,9 +174,11 @@ instance ITraversable AST where
 instance IShow AST where
     ishowsPrec :: forall ix a. SingI ix
                => (forall ix. SingI ix => Int -> a ix -> ShowS)
-               -> Int -> AST a ix -> ShowS
+               -> Int
+               -> AST a ix
+               -> ShowS
     ishowsPrec sp p =
-      case sing @ix of
+      case sing :: Sing ix of
         SProgram -> \case
           ProgramF externs defs -> showParen (p > 10) $
             showString "ProgramF " . showsPrec 11 externs . showString " " . showListWith (sp 0) defs
@@ -204,15 +207,25 @@ instance IShow AST where
           AltF cpat e -> showParen (p > 10) $
             showString "AltF " . showsPrec 11 cpat . showString " " . sp 11 e
 
--- ssa :: IFix AST 'Exp -> IFix AST 'Exp
--- ssa = 
+data FunNames (ix :: ASTIdx) where
+    FNProgram :: { getFunNamesProgram :: Set Name } -> FunNames 'Program
+    FNDef :: { getFunNamesDef :: Name } -> FunNames 'Def
+    FNOther :: FunNames ix
 
-funnamesAlg :: forall ix. SingI ix => AST (Const (Set Name)) ix -> Const (Set Name) ix
-funnamesAlg =
-  case sing @ix of
-    SProgram -> \case
-      ProgramF _ defs -> Const $ Set.unions $ map getConst defs
-    _ -> const $ Const mempty
+funnames :: Program -> Set Name
+funnames = getFunNamesProgram . cata alg
+    where
+        alg :: forall ix. SingI ix
+            => AST FunNames ix
+            -> FunNames ix
+        alg =
+          case sing :: Sing ix of
+            SProgram -> \case
+              ProgramF _ defs -> FNProgram $ Set.fromList $ getFunNamesDef <$> defs
+            SDef -> \case
+              DefF f _ _ -> FNDef f
+            _ -> \case
+                _ -> FNOther
 
 -- type SSAM = State (Set Name, Int)
 

@@ -1,21 +1,12 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE InstanceSigs          #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE NoStarIsType          #-}
-{-# LANGUAGE PatternSynonyms       #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
@@ -43,6 +34,13 @@ module Data.IFunctor.Foldable
     , meta
     , elgot
     , coelgot
+    -- * Monadic morphisms
+    , cataM
+    , paraM
+    , anaM
+    , apoM
+    , hyloM
+    , dynaM
     -- * Distribution Laws
     , DistLaw
     -- * Constructive distribution laws
@@ -61,35 +59,42 @@ module Data.IFunctor.Foldable
     , ghylo
     , gprepro
     , gpostpro
-    -- * Monadic morphisms
-    , cataM
-    , paraM
-    , anaM
-    , hyloM
-    -- , apoM
+    -- * Generalized monadic morphisms
     , gfoldM
     , gunfoldM
     , ghyloM
     -- * Re-exports
-    , module X
+    , module Data.Functor.Const
+    , module Data.Functor.Product
+    , module Data.Functor.Sum
+    , module Data.IComonad
+    , module Data.IFunction
+    , module Data.IFunctor
+    , module Data.IFunctor.Classes
+    , module Data.IFunctor.ICofree
+    , module Data.IFunctor.IFree
+    , module Data.IFunctor.IIdentity
+    , module Data.IMonad
+    , module Data.ITraversable
+    , module Singlethongs
     ) where
 
-import           Control.Monad ((<=<))
-import           Data.Functor.Const as X (Const (..))
-import           Data.Functor.Product    as X (Product (..))
-import           Data.Functor.Sum        as X (Sum (..))
-import           Data.IComonad           as X (IComonad (..))
-import           Data.IFunction          as X (type (~~>))
-import           Data.IFunctor           as X (IFunctor (..))
-import           Data.IFunctor.Classes   as X
-import           Data.IFunctor.ICofree   as X (ICofree (..))
-import           Data.IFunctor.IFree     as X (IFree (..))
-import           Data.IFunctor.IIdentity as X (IIdentity (..))
-import           Data.ITraversable       as X (ITraversable (..), imapDefault)
-import           Data.IMonad             as X (IMonad (..))
-import           Data.Singletons         as X (SingI (sing), withSingI)
+import           Control.Monad           ((<=<))
+import           Data.Functor.Const      (Const (..))
+import           Data.Functor.Product    (Product (..))
+import           Data.Functor.Sum        (Sum (..))
+import           Data.IComonad           (IComonad (..))
+import           Data.IFunction          (type (~~>))
+import           Data.IFunctor           (IFunctor (..))
+import           Data.IFunctor.Classes
+import           Data.IFunctor.ICofree   (ICofree (..))
+import           Data.IFunctor.IFree     (IFree (..))
+import           Data.IFunctor.IIdentity (IIdentity (..))
+import           Data.IMonad             (IMonad (..))
+import           Data.ITraversable       (ITraversable (..), imapDefault)
 import           Data.Typeable           (Typeable)
 import           GHC.Generics            (Generic, Generic1)
+import           Singlethongs            (SingI (sing))
 import           Text.Read
 
 -- | Fixpoint type
@@ -120,12 +125,6 @@ cata :: IFunctor f
      -> (IFix f ~~> a)
 cata f = gfold distCata (f . imap runIIdentity)
 
--- | Monadic catamorphism
-cataM :: (ITraversable f, Monad m)
-      => (forall ix. SingI ix => f a ix -> m (a ix))
-      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
-cataM f = gfoldM distCata (f . imap runIIdentity)
-
 -- | Fokkinga's prepromorphism
 prepro :: IFunctor f
        => (forall b. f b ~~> f b)
@@ -138,12 +137,6 @@ para :: IFunctor f
      => (f (Product (IFix f) a) ~~> a)
      -> (IFix f ~~> a)
 para = gfold distPara
-
--- | Monadic Paramorphism
-paraM :: (ITraversable f, Monad m)
-      => (forall ix. SingI ix => f (Product (IFix f) a) ix -> m (a ix))
-      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
-paraM = gfoldM distPara
 
 -- | Zygomorphism
 zygo :: IFunctor f
@@ -163,12 +156,6 @@ ana :: IFunctor f
     => (a ~~> f a)
     -> (a ~~> IFix f)
 ana g = gunfold distAna (imap IIdentity . g)
-
--- | Monadic anamorphism
-anaM :: (ITraversable f, Monad m)
-     => (forall ix. SingI ix => a ix -> m (f a ix))
-     -> (forall ix. SingI ix => a ix -> m (IFix f ix))
-anaM g = gunfoldM distAna (fmap (imap IIdentity) . g)
 
 -- | Fokkinga's postpromorphism
 postpro :: IFunctor f
@@ -202,13 +189,6 @@ hylo :: IFunctor f
      -> (a ~~> f a)
      -> (a ~~> b)
 hylo f g = ghylo distCata distAna (f . imap runIIdentity) (imap IIdentity . g)
-
--- | Monadic hylomorphism
-hyloM :: (ITraversable f, Monad m)
-     => (forall ix. SingI ix => f b ix -> m (b ix))
-     -> (forall ix. SingI ix => a ix -> m (f a ix))
-     -> (forall ix. SingI ix => a ix -> m (b ix))
-hyloM f g = ghyloM distCata distAna (f . imap runIIdentity) (fmap (imap IIdentity) . g)
 
 -- | Dynamorphism
 dyna :: IFunctor f
@@ -258,19 +238,52 @@ coelgot phi psi = h
         product :: forall a b c. (a ~~> b) -> (a ~~> c) -> (a ~~> Product b c)
         product f g x = Pair (f x) (g x)
 
--- * Zygohistomorphic prepromorphism
 
--- | Zygohistomorphic prepromorphism
--- zygoHistoPrepro :: (IFunctor f)
-                -- => (f (Const b) ~~> (Const b))
-                -- -> (forall c. f c ~~> f c)
-                -- -> (f (IEnvT b (ICofree f) a) ~~> a)
-                -- -> (IFix f ~~> a)
--- zygoHistoPrepro f g t = gprepro (distZygoT f distHisto) g t
+-- * Monadic morphisms
+
+-- | Monadic catamorphism
+cataM :: (ITraversable f, Monad m)
+      => (forall ix. SingI ix => f a ix -> m (a ix))
+      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+cataM f = gfoldM distCata (f . imap runIIdentity)
+
+-- | Monadic Paramorphism
+paraM :: (ITraversable f, Monad m)
+      => (forall ix. SingI ix => f (Product (IFix f) a) ix -> m (a ix))
+      -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+paraM = gfoldM distPara
+
+-- | Monadic anamorphism
+anaM :: (ITraversable f, Monad m)
+     => (forall ix. SingI ix => a ix -> m (f a ix))
+     -> (forall ix. SingI ix => a ix -> m (IFix f ix))
+anaM g = gunfoldM distAna (fmap (imap IIdentity) . g)
+
+-- | Monadic apomorphism
+apoM :: (ITraversable f, Monad m)
+     => (forall ix. SingI ix => a ix -> m (f (Sum (IFix f) a) ix))
+     -> (forall ix. SingI ix => a ix -> m (IFix f ix))
+apoM = gunfoldM distApo
+
+-- | Monadic hylomorphism
+hyloM :: (ITraversable f, Monad m)
+     => (forall ix. SingI ix => f b ix -> m (b ix))
+     -> (forall ix. SingI ix => a ix -> m (f a ix))
+     -> (forall ix. SingI ix => a ix -> m (b ix))
+hyloM f g = ghyloM distCata distAna (f . imap runIIdentity) (fmap (imap IIdentity) . g)
+
+-- | Monadic dynamorphism
+dynaM :: (ITraversable f, Monad m)
+      => (forall ix. SingI ix => f (ICofree f b) ix -> m (b ix))
+      -> (forall ix. SingI ix => a ix -> m (f a ix))
+      -> (forall ix. SingI ix => a ix -> m (b ix))
+dynaM f g = ghyloM distHisto distAna f (fmap (imap IIdentity) . g)
 
 -- * Distribution laws
 
 -- | Type of distribution laws
+-- A Constructive morphism means the second part is a 'IComonad'
+-- A Destructive morphism means the first part is an 'IMonad'
 type DistLaw f g = forall a. f (g a) ~~> g (f a)
 
 -- * Constructive distribution laws
@@ -303,21 +316,9 @@ distFutu :: IFunctor f => DistLaw (IFree f) f
 distFutu (IPure x) = imap IPure x
 distFutu (IFree x) = imap (IFree . distFutu) x
 
--- * Misc
+-- * Generalized combinators
 
--- distZygoT :: (IFunctor f, IComonad w)
-          -- => (f (Const b) ~~> (Const b))
-          -- -> (forall c. f (w c) ~~> w (f c))
-          -- -> (f (IEnvT b w a) ~~> IEnvT b w (f a))
--- distZygoT g k fe = IEnvT (getConst $ g (imap getEnv fe)) (k (imap lower fe))
-    -- where
-        -- lower (IEnvT _ x) = x
-        -- getEnv :: IEnvT e w a ix -> Const e ix
-        -- getEnv (IEnvT x _) = Const x
-
--- * Generic combinators
-
--- | Generic fold
+-- | Generalized fold
 gfold :: forall f w a. (IFunctor f, IComonad w)
       => DistLaw f w
       -> (f (w a) ~~> a)
@@ -327,16 +328,7 @@ gfold k g = g . iextract . c
         c :: IFix f ~~> w (f (w a))
         c = k . imap (iduplicate . imap g . c) . unIFix
 
-gfoldM :: forall f w m a. (ITraversable f, ITraversable w, IComonad w, Monad m)
-       => DistLaw f w
-       -> (forall ix. SingI ix => f (w a) ix -> m (a ix))
-       -> (forall ix. SingI ix => IFix f ix -> m (a ix))
-gfoldM k g = g . iextract <=< c
-    where
-        c :: forall ix. SingI ix => IFix f ix -> m (w (f (w a)) ix)
-        c = fmap k . itraverse (fmap iduplicate . itraverse g <=< c) . unIFix
-
--- | Generic unfold
+-- | Generalized unfold
 gunfold :: forall f m a. (IFunctor f, IMonad m)
         => DistLaw m f
         -> (a ~~> f (m a))
@@ -346,16 +338,7 @@ gunfold k f = a . ipure . f
         a :: m (f (m a)) ~~> IFix f
         a = IFix . imap (a . imap f . ijoin) . k
 
-gunfoldM :: forall f m a x. (ITraversable f, ITraversable m, IMonad m, Monad x)
-         => DistLaw m f
-         -> (forall ix. SingI ix => a ix -> x (f (m a) ix))
-         -> (forall ix. SingI ix => a ix -> x (IFix f ix))
-gunfoldM k f = a . ipure <=< f
-    where
-        a :: SingI ix => m (f (m a)) ix -> x (IFix f ix)
-        a = fmap IFix . itraverse (a <=< itraverse f . ijoin) . k
-
--- | Generic hylomorphism
+-- | Generalized hylomorphism
 ghylo :: forall f w m a b. (IFunctor f, IComonad w, IMonad m)
       => DistLaw f w
       -> DistLaw m f
@@ -367,6 +350,27 @@ ghylo w m f g = iextract . h . ipure
         h :: m a ~~> w b
         h = imap f . w . imap (iduplicate . h . ijoin) . m . imap g
 
+-- | Generalized monadic fold
+gfoldM :: forall f w m a. (ITraversable f, ITraversable w, IComonad w, Monad m)
+       => DistLaw f w
+       -> (forall ix. SingI ix => f (w a) ix -> m (a ix))
+       -> (forall ix. SingI ix => IFix f ix -> m (a ix))
+gfoldM k g = g . iextract <=< c
+    where
+        c :: forall ix. SingI ix => IFix f ix -> m (w (f (w a)) ix)
+        c = fmap k . itraverse (fmap iduplicate . itraverse g <=< c) . unIFix
+
+-- | Generalized monadic unfold
+gunfoldM :: forall f m a x. (ITraversable f, ITraversable m, IMonad m, Monad x)
+         => DistLaw m f
+         -> (forall ix. SingI ix => a ix -> x (f (m a) ix))
+         -> (forall ix. SingI ix => a ix -> x (IFix f ix))
+gunfoldM k f = a . ipure <=< f
+    where
+        a :: SingI ix => m (f (m a)) ix -> x (IFix f ix)
+        a = fmap IFix . itraverse (a <=< itraverse f . ijoin) . k
+
+-- | Generalized monadic hylomorphism
 ghyloM :: forall f w m a b x. (ITraversable f, ITraversable w, ITraversable m, IComonad w, IMonad m, Monad x)
        => DistLaw f w
        -> DistLaw m f

@@ -8,7 +8,7 @@ module Data.IFunction
     ( type (~~>)
     ) where
 
-import           Data.Singletons (SingI)
+import           Singlethongs (SingI)
 
 infixr 4 ~~>
 

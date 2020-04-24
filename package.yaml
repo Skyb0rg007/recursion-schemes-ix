@@ -19,9 +19,14 @@ category:            Data
 # common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/Skyb0rg007/recursion-schemes-ix#readme>
 
+tested-with: GHC == 8.6.5
+           , GHC == 8.8.3
+           , GHC == 8.10.1
+           , GHCJS == 8.6.0.1
+
 dependencies:
 - base >= 4.7 && < 5
-- singletons
+- singlethongs == 0.1
 
 library:
   source-dirs: src
@@ -40,5 +45,3 @@ tests:
     - mtl
     - QuickCheck
     - containers
-    build-tool:
-    - hspec-discover: hspec-discover

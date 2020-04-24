@@ -16,14 +16,13 @@ import           Data.IFunctor         (IFunctor (..))
 import           Data.IFunctor.Classes
 import           Data.IMonad           (IMonad (..))
 import           Data.ITraversable     (ITraversable (..))
-import           Data.Singletons       (SingI)
 import           Data.Typeable         (Typeable)
 import           GHC.Generics          (Generic, Generic1)
+import           Singlethongs          (SingI)
 import           Text.Read
 
 -- | Free IMonad
-data IFree f a ix
-    = IPure (a ix)
+data IFree f a ix = IPure (a ix)
     | IFree (f (IFree f a) ix)
     deriving (Typeable, Generic, Generic1)
 
@@ -65,13 +64,13 @@ instance IRead f => IRead (IFree f) where
 instance IEq f => IEq (IFree f) where
     ieq eq (IPure x) (IPure y) = eq x y
     ieq eq (IFree x) (IFree y) = ieq (ieq eq) x y
-    ieq _ _ _ = False
+    ieq _ _ _                  = False
 
 instance IOrd f => IOrd (IFree f) where
     icompare comp (IPure x) (IPure y) = comp x y
     icompare comp (IFree x) (IFree y) = icompare (icompare comp) x y
-    icompare _ (IPure _) (IFree _) = LT
-    icompare _ (IFree _) (IPure _) = GT
+    icompare _ (IPure _) (IFree _)    = LT
+    icompare _ (IFree _) (IPure _)    = GT
 
 instance (IShow f, IShow2 a, SingI ix) => Show (IFree f a ix) where
     showsPrec = ishowsPrec1

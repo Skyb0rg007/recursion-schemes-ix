@@ -15,15 +15,17 @@ import           Data.Data             (Data)
 import           Data.Function         (on)
 import           Data.IComonad         (IComonad (..))
 import           Data.IFunctor         (IFunctor (..))
-import           Data.ITraversable     (ITraversable (..))
 import           Data.IFunctor.Classes
 import           Data.IMonad           (IMonad (..))
-import           Data.Singletons       (SingI)
+import           Data.ITraversable     (ITraversable (..))
 import           Data.Typeable         (Typeable)
 import           GHC.Generics          (Generic, Generic1)
+import           Singlethongs          (SingI)
 import           Text.Read
 
-data IIdentity f ix = IIdentity { runIIdentity :: f ix }
+data IIdentity f ix = IIdentity
+    { runIIdentity :: f ix
+    }
     deriving (Typeable, Data, Generic, Generic1)
 
 instance IFunctor IIdentity where

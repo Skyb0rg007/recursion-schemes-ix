@@ -1,16 +1,29 @@
-{-# LANGUAGE PolyKinds, QuantifiedConstraints, FlexibleInstances, PatternSynonyms, RankNTypes, DataKinds, KindSignatures, TypeFamilies, PolyKinds, InstanceSigs, ScopedTypeVariables, TypeApplications, MultiParamTypeClasses, LambdaCase, GADTs #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms       #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module ASTSpec (main, spec) where
 
-import Test.Hspec
-import Test.QuickCheck
-import Data.Char
-import Data.Tree
-import Data.IFunctor.Foldable
-import Text.Read
-import Data.Singletons
-import Data.Functor.Classes
-import Data.Kind (Type)
+import           Data.Char
+import           Data.Functor.Classes
+import           Data.IFunctor.Foldable
+import           Data.Kind              (Type)
+import           Singlethongs
+import           Data.Tree
+import           Test.Hspec
+import           Test.QuickCheck
+import           Text.Read
 
 main :: IO ()
 main = hspec spec
@@ -48,7 +61,9 @@ spec = do
 
 -- * Implementations
 
-data ASTIndex = Exp | Fac
+data ASTIndex
+    = Exp
+    | Fac
 data SAST ix where
     SExp :: SAST 'Exp
     SFac :: SAST 'Fac

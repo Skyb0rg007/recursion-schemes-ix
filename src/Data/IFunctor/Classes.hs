@@ -1,6 +1,5 @@
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE PolyKinds             #-}
--- [># LANGUAGE UndecidableInstances  #<]
+{-# LANGUAGE PolyKinds  #-}
+{-# LANGUAGE RankNTypes #-}
 
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 
@@ -28,7 +27,7 @@ module Data.IFunctor.Classes
 
 import           Data.Functor.Product (Product (..))
 import           Data.Functor.Sum     (Sum (..))
-import           Data.Singletons      (SingI)
+import           Singlethongs         (SingI)
 import           Text.Read
 
 class IShow f where
@@ -115,13 +114,13 @@ instance IRead2 a => IRead (Sum a) where
 instance IEq2 a => IEq (Sum a) where
     ieq _  (InL x) (InL y) = ieq2 x y
     ieq eq (InR x) (InR y) = eq x y
-    ieq _ _ _ = False
+    ieq _ _ _              = False
 
 instance IOrd2 a => IOrd (Sum a) where
-    icompare _ (InL x) (InL y) = icompare2 x y
+    icompare _ (InL x) (InL y)    = icompare2 x y
     icompare comp (InR x) (InR y) = comp x y
-    icompare _ (InL _) (InR _) = LT
-    icompare _ (InR _) (InL _) = GT
+    icompare _ (InL _) (InR _)    = LT
+    icompare _ (InR _) (InL _)    = GT
 
 -- Product
 instance IShow2 a => IShow (Product a) where
