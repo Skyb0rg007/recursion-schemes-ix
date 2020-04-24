@@ -1,0 +1,361 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable    #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric         #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE PolyKinds             #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE QuantifiedConstraints #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes            #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeOperators         #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances  #-}</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.IFunctor.ICofree</span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier">ICofree</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.IComonad.html"><span class="hs-identifier">Data.IComonad</span></a></span><span>         </span><span class="hs-special">(</span><span class="annot"><a href="Data.IComonad.html#IComonad"><span class="hs-identifier">IComonad</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.IFunctor.html"><span class="hs-identifier">Data.IFunctor</span></a></span><span>         </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.html#IFunctor"><span class="hs-identifier">IFunctor</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.IFunctor.Classes.html"><span class="hs-identifier">Data.IFunctor.Classes</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.ITraversable.html"><span class="hs-identifier">Data.ITraversable</span></a></span><span>     </span><span class="hs-special">(</span><span class="annot"><a href="Data.ITraversable.html#ITraversable"><span class="hs-identifier">ITraversable</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Typeable</span></span><span>         </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Typeable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Generic1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Singlethongs</span></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SingI</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Text.Read</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">infixr</span><span> </span><span class="hs-number">5</span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | Cofree IComonad</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679083544"><span id="local-6989586621679083545"><span id="local-6989586621679083546"><span id="local-6989586621679083547"></span></span></span></span><span class="hs-keyword">data</span><span> </span><span id="ICofree"><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-var">ICofree</span></a></span></span><span> </span><span id="local-6989586621679083707"><span class="annot"><a href="#local-6989586621679083707"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621679083709"><span class="annot"><a href="#local-6989586621679083709"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679083708"><span class="annot"><a href="#local-6989586621679083708"><span class="hs-identifier hs-type">ix</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="#local-6989586621679083709"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083708"><span class="hs-identifier hs-type">ix</span></a></span><span> </span><span id="%3A%3A%3C"><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span></span><span> </span><span class="annot"><a href="#local-6989586621679083707"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083707"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083709"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679083708"><span class="hs-identifier hs-type">ix</span></a></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. ICofree f a ix -&gt; Rep (ICofree f a ix) x)
+-&gt; (forall x. Rep (ICofree f a ix) x -&gt; ICofree f a ix)
+-&gt; Generic (ICofree f a ix)
+forall x. Rep (ICofree f a ix) x -&gt; ICofree f a ix
+forall x. ICofree f a ix -&gt; Rep (ICofree f a ix) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k) x.
+Rep (ICofree f a ix) x -&gt; ICofree f a ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k) x.
+ICofree f a ix -&gt; Rep (ICofree f a ix) x
+$cto :: forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k) x.
+Rep (ICofree f a ix) x -&gt; ICofree f a ix
+$cfrom :: forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k) x.
+ICofree f a ix -&gt; Rep (ICofree f a ix) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall (a :: k). ICofree f a a -&gt; Rep1 (ICofree f a) a)
+-&gt; (forall (a :: k). Rep1 (ICofree f a) a -&gt; ICofree f a a)
+-&gt; Generic1 (ICofree f a)
+forall (a :: k). Rep1 (ICofree f a) a -&gt; ICofree f a a
+forall (a :: k). ICofree f a a -&gt; Rep1 (ICofree f a) a
+forall k (f :: k -&gt; *).
+(forall (a :: k). f a -&gt; Rep1 f a)
+-&gt; (forall (a :: k). Rep1 f a -&gt; f a) -&gt; Generic1 f
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (a :: k).
+Rep1 (ICofree f a) a -&gt; ICofree f a a
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (a :: k).
+ICofree f a a -&gt; Rep1 (ICofree f a) a
+$cto1 :: forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (a :: k).
+Rep1 (ICofree f a) a -&gt; ICofree f a a
+$cfrom1 :: forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (a :: k).
+ICofree f a a -&gt; Rep1 (ICofree f a) a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span id="local-6989586621679083537"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.IFunctor.html#IFunctor"><span class="hs-identifier hs-type">IFunctor</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083537"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IFunctor.html#IFunctor"><span class="hs-identifier hs-type">IFunctor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083537"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679083534"><span class="annot"><span class="annottext">imap :: (a ~~&gt; b) -&gt; ICofree f a ~~&gt; ICofree f b
+</span><a href="Data.IFunctor.html#imap"><span class="hs-identifier hs-var hs-var hs-var hs-var">imap</span></a></span></span><span> </span><span id="local-6989586621679083532"><span class="annot"><span class="annottext">f :: a ~~&gt; b
+</span><a href="#local-6989586621679083532"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083531"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083531"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083530"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083530"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a ix -&gt; b ix
+a ~~&gt; b
+</span><a href="#local-6989586621679083532"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083531"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">b ix -&gt; f (ICofree f b) ix -&gt; ICofree f b ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">(ICofree f a ~~&gt; ICofree f b)
+-&gt; f (ICofree f a) ix -&gt; f (ICofree f b) ix
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (b :: k -&gt; *).
+IFunctor f =&gt;
+(a ~~&gt; b) -&gt; f a ~~&gt; f b
+</span><a href="Data.IFunctor.html#imap"><span class="hs-identifier hs-var">imap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a ~~&gt; b) -&gt; ICofree f a ~~&gt; ICofree f b
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (b :: k -&gt; *).
+IFunctor f =&gt;
+(a ~~&gt; b) -&gt; f a ~~&gt; f b
+</span><a href="Data.IFunctor.html#imap"><span class="hs-identifier hs-var">imap</span></a></span><span> </span><span class="annot"><span class="annottext">a ~~&gt; b
+</span><a href="#local-6989586621679083532"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083530"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span id="local-6989586621679083529"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.ITraversable.html#ITraversable"><span class="hs-identifier hs-type">ITraversable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083529"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.ITraversable.html#ITraversable"><span class="hs-identifier hs-type">ITraversable</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083529"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>    </span><span id="local-6989586621679083525"><span class="annot"><span class="annottext">itraverse :: (forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix))
+-&gt; ICofree f a ix -&gt; m (ICofree f b ix)
+</span><a href="Data.ITraversable.html#itraverse"><span class="hs-identifier hs-var hs-var hs-var hs-var">itraverse</span></a></span></span><span> </span><span id="local-6989586621679083523"><span class="annot"><span class="annottext">f :: forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix)
+</span><a href="#local-6989586621679083523"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083522"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083522"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083521"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083521"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">b ix -&gt; f (ICofree f b) ix -&gt; ICofree f b ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">(::&lt;)</span></a></span><span> </span><span class="annot"><span class="annottext">(b ix -&gt; f (ICofree f b) ix -&gt; ICofree f b ix)
+-&gt; m (b ix) -&gt; m (f (ICofree f b) ix -&gt; ICofree f b ix)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">a ix -&gt; m (b ix)
+forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix)
+</span><a href="#local-6989586621679083523"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083522"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">m (f (ICofree f b) ix -&gt; ICofree f b ix)
+-&gt; m (f (ICofree f b) ix) -&gt; m (ICofree f b ix)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">(forall (ix :: k).
+ SingI ix =&gt;
+ ICofree f a ix -&gt; m (ICofree f b ix))
+-&gt; f (ICofree f a) ix -&gt; m (f (ICofree f b) ix)
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (m :: * -&gt; *) (ix :: k)
+       (a :: k -&gt; *) (b :: k -&gt; *).
+(ITraversable f, Applicative m, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix))
+-&gt; f a ix -&gt; m (f b ix)
+</span><a href="Data.ITraversable.html#itraverse"><span class="hs-identifier hs-var">itraverse</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix))
+-&gt; ICofree f a ix -&gt; m (ICofree f b ix)
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (m :: * -&gt; *) (ix :: k)
+       (a :: k -&gt; *) (b :: k -&gt; *).
+(ITraversable f, Applicative m, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix))
+-&gt; f a ix -&gt; m (f b ix)
+</span><a href="Data.ITraversable.html#itraverse"><span class="hs-identifier hs-var">itraverse</span></a></span><span> </span><span class="annot"><span class="annottext">forall (ix :: k). SingI ix =&gt; a ix -&gt; m (b ix)
+</span><a href="#local-6989586621679083523"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083521"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span id="local-6989586621679083519"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.IFunctor.html#IFunctor"><span class="hs-identifier hs-type">IFunctor</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083519"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IComonad.html#IComonad"><span class="hs-identifier hs-type">IComonad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083519"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>    </span><span id="local-6989586621679083513"><span class="annot"><span class="annottext">iextract :: ICofree f a ix -&gt; a ix
+</span><a href="Data.IComonad.html#iextract"><span class="hs-identifier hs-var hs-var hs-var hs-var">iextract</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083511"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083511"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span class="hs-identifier">_</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083511"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-38"></span><span>    </span><span id="local-6989586621679083510"><span class="annot"><span class="annottext">iduplicate :: ICofree f a ix -&gt; ICofree f (ICofree f a) ix
+</span><a href="Data.IComonad.html#iduplicate"><span class="hs-identifier hs-var hs-var hs-var hs-var">iduplicate</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083508"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083508"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083507"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083507"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083508"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083507"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ICofree f a ix
+-&gt; f (ICofree f (ICofree f a)) ix -&gt; ICofree f (ICofree f a) ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">(ICofree f a ~~&gt; ICofree f (ICofree f a))
+-&gt; f (ICofree f a) ix -&gt; f (ICofree f (ICofree f a)) ix
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (b :: k -&gt; *).
+IFunctor f =&gt;
+(a ~~&gt; b) -&gt; f a ~~&gt; f b
+</span><a href="Data.IFunctor.html#imap"><span class="hs-identifier hs-var">imap</span></a></span><span> </span><span class="annot"><span class="annottext">ICofree f a ~~&gt; ICofree f (ICofree f a)
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *).
+IComonad f =&gt;
+f a ~~&gt; f (f a)
+</span><a href="Data.IComonad.html#iduplicate"><span class="hs-identifier hs-var">iduplicate</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083507"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span id="local-6989586621679083506"><span class="annot"><span class="annottext">iextend :: (ICofree f a ~~&gt; b) -&gt; ICofree f a ~~&gt; ICofree f b
+</span><a href="Data.IComonad.html#iextend"><span class="hs-identifier hs-var hs-var hs-var hs-var">iextend</span></a></span></span><span> </span><span id="local-6989586621679083504"><span class="annot"><span class="annottext">f :: ICofree f a ~~&gt; b
+</span><a href="#local-6989586621679083504"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083503"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083503"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083502"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083502"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ICofree f a ix -&gt; b ix
+ICofree f a ~~&gt; b
+</span><a href="#local-6989586621679083504"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083503"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083502"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">b ix -&gt; f (ICofree f b) ix -&gt; ICofree f b ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">(ICofree f a ~~&gt; ICofree f b)
+-&gt; f (ICofree f a) ix -&gt; f (ICofree f b) ix
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (b :: k -&gt; *).
+IFunctor f =&gt;
+(a ~~&gt; b) -&gt; f a ~~&gt; f b
+</span><a href="Data.IFunctor.html#imap"><span class="hs-identifier hs-var">imap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ICofree f a ~~&gt; b) -&gt; ICofree f a ~~&gt; ICofree f b
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (b :: k -&gt; *).
+IComonad f =&gt;
+(f a ~~&gt; b) -&gt; f a ~~&gt; f b
+</span><a href="Data.IComonad.html#iextend"><span class="hs-identifier hs-var">iextend</span></a></span><span> </span><span class="annot"><span class="annottext">ICofree f a ~~&gt; b
+</span><a href="#local-6989586621679083504"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083502"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679083501"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083498"><span class="annot"><a href="Data.IFunctor.Classes.html#IShow"><span class="hs-identifier hs-type">IShow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083501"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IShow"><span class="hs-identifier hs-type">IShow</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083501"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679083496"><span class="annot"><span class="annottext">ishowsPrec :: (forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS)
+-&gt; Int -&gt; ICofree f a ix -&gt; ShowS
+</span><a href="Data.IFunctor.Classes.html#ishowsPrec"><span class="hs-identifier hs-var hs-var hs-var hs-var">ishowsPrec</span></a></span></span><span> </span><span id="local-6989586621679083494"><span class="annot"><span class="annottext">sp :: forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS
+</span><a href="#local-6989586621679083494"><span class="hs-identifier hs-var">sp</span></a></span></span><span> </span><span id="local-6989586621679083493"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679083493"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083492"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083492"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083491"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083491"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; ShowS -&gt; ShowS
+</span><span class="hs-identifier hs-var">showParen</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679083493"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">5</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ShowS -&gt; ShowS) -&gt; ShowS -&gt; ShowS
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-43"></span><span>        </span><span class="annot"><span class="annottext">Int -&gt; a ix -&gt; ShowS
+forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS
+</span><a href="#local-6989586621679083494"><span class="hs-identifier hs-var">sp</span></a></span><span> </span><span class="annot"><span class="hs-number">6</span></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083492"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">ShowS -&gt; ShowS -&gt; ShowS
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ShowS
+</span><span class="hs-identifier hs-var">showString</span></span><span> </span><span class="annot"><span class="hs-string">&quot; ::&lt; &quot;</span></span><span> </span><span class="annot"><span class="annottext">ShowS -&gt; ShowS -&gt; ShowS
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; Int -&gt; ICofree f a ix -&gt; ShowS)
+-&gt; Int -&gt; f (ICofree f a) ix -&gt; ShowS
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IShow f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS)
+-&gt; Int -&gt; f a ix -&gt; ShowS
+</span><a href="Data.IFunctor.Classes.html#ishowsPrec"><span class="hs-identifier hs-var">ishowsPrec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS)
+-&gt; Int -&gt; ICofree f a ix -&gt; ShowS
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IShow f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS)
+-&gt; Int -&gt; f a ix -&gt; ShowS
+</span><a href="Data.IFunctor.Classes.html#ishowsPrec"><span class="hs-identifier hs-var">ishowsPrec</span></a></span><span> </span><span class="annot"><span class="annottext">forall (ix :: k). SingI ix =&gt; Int -&gt; a ix -&gt; ShowS
+</span><a href="#local-6989586621679083494"><span class="hs-identifier hs-var">sp</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">6</span></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083491"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span id="local-6989586621679083486"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083483"><span class="annot"><a href="Data.IFunctor.Classes.html#IRead"><span class="hs-identifier hs-type">IRead</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083486"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IRead"><span class="hs-identifier hs-type">IRead</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083486"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>    </span><span id="local-6989586621679083481"><span class="annot"><span class="annottext">ireadPrec :: (forall (ix :: k). SingI ix =&gt; ReadPrec (a ix))
+-&gt; ReadPrec (ICofree f a ix)
+</span><a href="Data.IFunctor.Classes.html#ireadPrec"><span class="hs-identifier hs-var hs-var hs-var hs-var">ireadPrec</span></a></span></span><span> </span><span id="local-6989586621679083479"><span class="annot"><span class="annottext">rp :: forall (ix :: k). SingI ix =&gt; ReadPrec (a ix)
+</span><a href="#local-6989586621679083479"><span class="hs-identifier hs-var">rp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix)
+forall a. ReadPrec a -&gt; ReadPrec a
+</span><span class="hs-identifier hs-var">parens</span></span><span> </span><span class="annot"><span class="annottext">(ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix))
+-&gt; ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix)
+forall a. Int -&gt; ReadPrec a -&gt; ReadPrec a
+</span><span class="hs-identifier hs-var">prec</span></span><span> </span><span class="annot"><span class="hs-number">5</span></span><span> </span><span class="annot"><span class="annottext">(ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix))
+-&gt; ReadPrec (ICofree f a ix) -&gt; ReadPrec (ICofree f a ix)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-47"></span><span>        </span><span id="local-6989586621679083476"><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083476"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ReadPrec (a ix) -&gt; ReadPrec (a ix)
+forall a. ReadPrec a -&gt; ReadPrec a
+</span><span class="hs-identifier hs-var">step</span></span><span> </span><span class="annot"><span class="annottext">ReadPrec (a ix)
+forall (ix :: k). SingI ix =&gt; ReadPrec (a ix)
+</span><a href="#local-6989586621679083479"><span class="hs-identifier hs-var">rp</span></a></span><span>
+</span><span id="line-48"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Symbol</span></span><span> </span><span class="hs-string">&quot;::&lt;&quot;</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ReadPrec Lexeme
+</span><span class="hs-identifier hs-var">lexP</span></span><span>
+</span><span id="line-49"></span><span>        </span><span id="local-6989586621679083472"><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083472"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ReadPrec (f (ICofree f a) ix) -&gt; ReadPrec (f (ICofree f a) ix)
+forall a. ReadPrec a -&gt; ReadPrec a
+</span><span class="hs-identifier hs-var">step</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; ReadPrec (ICofree f a ix))
+-&gt; ReadPrec (f (ICofree f a) ix)
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IRead f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; ReadPrec (a ix))
+-&gt; ReadPrec (f a ix)
+</span><a href="Data.IFunctor.Classes.html#ireadPrec"><span class="hs-identifier hs-var">ireadPrec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; ReadPrec (a ix))
+-&gt; ReadPrec (ICofree f a ix)
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IRead f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; ReadPrec (a ix))
+-&gt; ReadPrec (f a ix)
+</span><a href="Data.IFunctor.Classes.html#ireadPrec"><span class="hs-identifier hs-var">ireadPrec</span></a></span><span> </span><span class="annot"><span class="annottext">forall (ix :: k). SingI ix =&gt; ReadPrec (a ix)
+</span><a href="#local-6989586621679083479"><span class="hs-identifier hs-var">rp</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>        </span><span class="annot"><span class="annottext">ICofree f a ix -&gt; ReadPrec (ICofree f a ix)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083476"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+forall k (f :: (k -&gt; *) -&gt; k -&gt; *) (a :: k -&gt; *) (ix :: k).
+a ix -&gt; f (ICofree f a) ix -&gt; ICofree f a ix
+</span><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-var">::&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083472"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span id="local-6989586621679083471"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IEq"><span class="hs-identifier hs-type">IEq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083471"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IEq"><span class="hs-identifier hs-type">IEq</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083471"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>    </span><span id="local-6989586621679083468"><span class="annot"><span class="annottext">ieq :: (forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool)
+-&gt; ICofree f a ix -&gt; ICofree f a ix -&gt; Bool
+</span><a href="Data.IFunctor.Classes.html#ieq"><span class="hs-identifier hs-var hs-var hs-var hs-var">ieq</span></a></span></span><span> </span><span id="local-6989586621679083466"><span class="annot"><span class="annottext">eq :: forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool
+</span><a href="#local-6989586621679083466"><span class="hs-identifier hs-var">eq</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083465"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083465"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083464"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083464"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083463"><span class="annot"><span class="annottext">a' :: a ix
+</span><a href="#local-6989586621679083463"><span class="hs-identifier hs-var">a'</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083462"><span class="annot"><span class="annottext">x' :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083462"><span class="hs-identifier hs-var">x'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a ix -&gt; a ix -&gt; Bool
+forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool
+</span><a href="#local-6989586621679083466"><span class="hs-identifier hs-var">eq</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083465"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083463"><span class="hs-identifier hs-var">a'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">(forall (ix :: k).
+ SingI ix =&gt;
+ ICofree f a ix -&gt; ICofree f a ix -&gt; Bool)
+-&gt; f (ICofree f a) ix -&gt; f (ICofree f a) ix -&gt; Bool
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IEq f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool)
+-&gt; f a ix -&gt; f a ix -&gt; Bool
+</span><a href="Data.IFunctor.Classes.html#ieq"><span class="hs-identifier hs-var">ieq</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool)
+-&gt; ICofree f a ix -&gt; ICofree f a ix -&gt; Bool
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IEq f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool)
+-&gt; f a ix -&gt; f a ix -&gt; Bool
+</span><a href="Data.IFunctor.Classes.html#ieq"><span class="hs-identifier hs-var">ieq</span></a></span><span> </span><span class="annot"><span class="annottext">forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Bool
+</span><a href="#local-6989586621679083466"><span class="hs-identifier hs-var">eq</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083464"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083462"><span class="hs-identifier hs-var">x'</span></a></span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span id="local-6989586621679083460"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IOrd"><span class="hs-identifier hs-type">IOrd</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083460"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IOrd"><span class="hs-identifier hs-type">IOrd</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083460"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>    </span><span id="local-6989586621679083456"><span class="annot"><span class="annottext">icompare :: (forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering)
+-&gt; ICofree f a ix -&gt; ICofree f a ix -&gt; Ordering
+</span><a href="Data.IFunctor.Classes.html#icompare"><span class="hs-identifier hs-var hs-var hs-var hs-var">icompare</span></a></span></span><span> </span><span id="local-6989586621679083454"><span class="annot"><span class="annottext">comp :: forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering
+</span><a href="#local-6989586621679083454"><span class="hs-identifier hs-var">comp</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083453"><span class="annot"><span class="annottext">a :: a ix
+</span><a href="#local-6989586621679083453"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083452"><span class="annot"><span class="annottext">x :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083452"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679083451"><span class="annot"><span class="annottext">a' :: a ix
+</span><a href="#local-6989586621679083451"><span class="hs-identifier hs-var">a'</span></a></span></span><span> </span><span class="annot"><a href="Data.IFunctor.ICofree.html#%3A%3A%3C"><span class="hs-operator hs-type">::&lt;</span></a></span><span> </span><span id="local-6989586621679083450"><span class="annot"><span class="annottext">x' :: f (ICofree f a) ix
+</span><a href="#local-6989586621679083450"><span class="hs-identifier hs-var">x'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a ix -&gt; a ix -&gt; Ordering
+forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering
+</span><a href="#local-6989586621679083454"><span class="hs-identifier hs-var">comp</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083453"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a ix
+</span><a href="#local-6989586621679083451"><span class="hs-identifier hs-var">a'</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Ordering
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(forall (ix :: k).
+ SingI ix =&gt;
+ ICofree f a ix -&gt; ICofree f a ix -&gt; Ordering)
+-&gt; f (ICofree f a) ix -&gt; f (ICofree f a) ix -&gt; Ordering
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IOrd f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering)
+-&gt; f a ix -&gt; f a ix -&gt; Ordering
+</span><a href="Data.IFunctor.Classes.html#icompare"><span class="hs-identifier hs-var">icompare</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering)
+-&gt; ICofree f a ix -&gt; ICofree f a ix -&gt; Ordering
+forall k k (f :: (k -&gt; *) -&gt; k -&gt; *) (ix :: k) (a :: k -&gt; *).
+(IOrd f, SingI ix) =&gt;
+(forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering)
+-&gt; f a ix -&gt; f a ix -&gt; Ordering
+</span><a href="Data.IFunctor.Classes.html#icompare"><span class="hs-identifier hs-var">icompare</span></a></span><span> </span><span class="annot"><span class="annottext">forall (ix :: k). SingI ix =&gt; a ix -&gt; a ix -&gt; Ordering
+</span><a href="#local-6989586621679083454"><span class="hs-identifier hs-var">comp</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083452"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">f (ICofree f a) ix
+</span><a href="#local-6989586621679083450"><span class="hs-identifier hs-var">x'</span></a></span></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span id="local-6989586621679083447"><span id="local-6989586621679083448"><span id="local-6989586621679083449"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083442"><span id="local-6989586621679083444"><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.Classes.html#IShow"><span class="hs-identifier hs-type">IShow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083449"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IShow2"><span class="hs-identifier hs-type">IShow2</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083448"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SingI</span></span><span> </span><span class="annot"><a href="#local-6989586621679083447"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083449"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083448"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083447"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>    </span><span id="local-6989586621679083440"><span class="annot"><span class="annottext">showsPrec :: Int -&gt; ICofree f a ix -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">showsPrec</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ICofree f a ix -&gt; ShowS
+forall k1 k2 (f :: (k1 -&gt; *) -&gt; k2 -&gt; *) (a :: k1 -&gt; *) (ix :: k2).
+(IShow f, IShow2 a, SingI ix) =&gt;
+Int -&gt; f a ix -&gt; ShowS
+</span><a href="Data.IFunctor.Classes.html#ishowsPrec1"><span class="hs-identifier hs-var">ishowsPrec1</span></a></span></span></span></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span id="local-6989586621679083435"><span id="local-6989586621679083436"><span id="local-6989586621679083437"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083428"><span id="local-6989586621679083431"><span id="local-6989586621679083433"><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.Classes.html#IRead"><span class="hs-identifier hs-type">IRead</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083437"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IRead2"><span class="hs-identifier hs-type">IRead2</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083436"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SingI</span></span><span> </span><span class="annot"><a href="#local-6989586621679083435"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Read</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083437"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083436"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083435"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679083426"><span class="annot"><span class="annottext">readPrec :: ReadPrec (ICofree f a ix)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">readPrec</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ReadPrec (ICofree f a ix)
+forall k1 k2 (f :: (k1 -&gt; *) -&gt; k2 -&gt; *) (a :: k1 -&gt; *) (ix :: k2).
+(IRead f, IRead2 a, SingI ix) =&gt;
+ReadPrec (f a ix)
+</span><a href="Data.IFunctor.Classes.html#ireadPrec1"><span class="hs-identifier hs-var">ireadPrec1</span></a></span></span></span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span id="local-6989586621679083421"><span id="local-6989586621679083422"><span id="local-6989586621679083423"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083418"><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.Classes.html#IEq"><span class="hs-identifier hs-type">IEq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083423"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IEq2"><span class="hs-identifier hs-type">IEq2</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083422"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SingI</span></span><span> </span><span class="annot"><a href="#local-6989586621679083421"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083423"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083422"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083421"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621679083416"><span class="annot"><span class="annottext">== :: ICofree f a ix -&gt; ICofree f a ix -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ICofree f a ix -&gt; ICofree f a ix -&gt; Bool
+forall k1 k2 (f :: (k1 -&gt; *) -&gt; k2 -&gt; *) (a :: k1 -&gt; *) (ix :: k2).
+(IEq f, IEq2 a, SingI ix) =&gt;
+f a ix -&gt; f a ix -&gt; Bool
+</span><a href="Data.IFunctor.Classes.html#ieq1"><span class="hs-identifier hs-var">ieq1</span></a></span></span></span></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span id="local-6989586621679083412"><span id="local-6989586621679083413"><span id="local-6989586621679083414"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679083398"><span id="local-6989586621679083400"><span id="local-6989586621679083402"><span id="local-6989586621679083404"><span id="local-6989586621679083406"><span id="local-6989586621679083408"><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.Classes.html#IOrd"><span class="hs-identifier hs-type">IOrd</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083414"><span class="hs-identifier hs-type">f</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IFunctor.Classes.html#IOrd2"><span class="hs-identifier hs-type">IOrd2</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083413"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SingI</span></span><span> </span><span class="annot"><a href="#local-6989586621679083412"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IFunctor.ICofree.html#ICofree"><span class="hs-identifier hs-type">ICofree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083414"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083413"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679083412"><span class="hs-identifier hs-type">ix</span></a></span><span class="hs-special">)</span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679083396"><span class="annot"><span class="annottext">compare :: ICofree f a ix -&gt; ICofree f a ix -&gt; Ordering
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ICofree f a ix -&gt; ICofree f a ix -&gt; Ordering
+forall k1 k2 (f :: (k1 -&gt; *) -&gt; k2 -&gt; *) (a :: k1 -&gt; *) (ix :: k2).
+(IOrd f, IOrd2 a, SingI ix) =&gt;
+f a ix -&gt; f a ix -&gt; Ordering
+</span><a href="Data.IFunctor.Classes.html#icompare1"><span class="hs-identifier hs-var">icompare1</span></a></span></span></span></span><span>
+</span><span id="line-69"></span></pre></body></html>
