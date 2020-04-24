@@ -5,6 +5,7 @@ license:             BSD3
 author:              "Skye Soss"
 maintainer:          "skyler.soss@gmail.com"
 copyright:           "2020 Skye Soss"
+stability:           alpha
 
 extra-source-files:
 - README.md

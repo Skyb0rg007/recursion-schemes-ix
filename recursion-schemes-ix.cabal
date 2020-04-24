@@ -4,13 +4,14 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7cddca0b3e3c7d20e7ea23e032fe3d8edaeb82b09edbbbfec8962e171e16cd46
+-- hash: 20ec8e090059628c63cb93a58e4d0b51b601fbc74c1e66720dfae9482192e98b
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
 synopsis:       Recursion schemes over indexed Functors
 description:    Please see the README on GitHub at <https://github.com/Skyb0rg007/recursion-schemes-ix#readme>
 category:       Data
+stability:      alpha
 homepage:       https://github.com/Skyb0rg007/recursion-schemes-ix#readme
 bug-reports:    https://github.com/Skyb0rg007/recursion-schemes-ix/issues
 author:         Skye Soss
