@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 896504780cf1b7cf35239d0be90572e037db336b881ca418eccaa3d5c9d37f5e
+-- hash: 7cddca0b3e3c7d20e7ea23e032fe3d8edaeb82b09edbbbfec8962e171e16cd46
 
 name:           recursion-schemes-ix
 version:        0.1.0.0
@@ -45,7 +45,7 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      base >=4.12 && <4.15
     , singlethongs ==0.1
   default-language: Haskell2010
 
@@ -61,7 +61,7 @@ test-suite recursion-schemes-ix-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
-    , base >=4.7 && <5
+    , base >=4.12 && <4.15
     , containers
     , hspec
     , mtl
