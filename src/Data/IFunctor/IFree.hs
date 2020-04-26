@@ -77,6 +77,7 @@ instance (IShow f, IShow2 a, SingI ix) => Show (IFree f a ix) where
 
 instance (IRead f, IRead2 a, SingI ix) => Read (IFree f a ix) where
     readPrec = ireadPrec1
+    readListPrec = readListPrecDefault
 
 instance (IEq f, IEq2 a, SingI ix) => Eq (IFree f a ix) where
     (==) = ieq1
